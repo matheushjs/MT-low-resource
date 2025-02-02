@@ -47,8 +47,6 @@ model = AutoModelForCausalLM.from_pretrained(
     attn_implementation=attn_implementation
 )
 
-print(model)
-
 # Load tokenizer
 tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
 
@@ -73,5 +71,54 @@ dataset = dataset.map(
     num_proc=4,
 )
 
-print(dataset)
+def find_all_linear_names(model):
+    cls = bnb.nn.Linear4bit
+    lora_module_names = set()
+    for name, module in model.named_modules():
+        if isinstance(module, cls):
+            names = name.split('.')
+            lora_module_names.add(names[0] if len(names) == 1 else names[-1])
+    if 'lm_head' in lora_module_names:  # needed for 16 bit
+        lora_module_names.remove('lm_head')
+    return list(lora_module_names)
 
+modules = find_all_linear_names(model)
+
+# LoRA config
+peft_config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM",
+    target_modules=modules
+)
+tokenizer.chat_template = None
+model, tokenizer = setup_chat_format(model, tokenizer)
+model = get_peft_model(model, peft_config)
+
+#Hyperparamter
+training_arguments = SFTConfig(
+    output_dir=new_model,
+    per_device_train_batch_size=1,
+    per_device_eval_batch_size=1,
+    gradient_accumulation_steps=2,
+    #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
+    #report_to="wandb"
+)
+
+dataset = dataset.train_test_split(0.1)
+
+# Setting sft parameters
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=dataset["train"],
+    eval_dataset=dataset["test"],
+    peft_config=peft_config,
+    #max_seq_length=512,
+    #dataset_text_field="text",
+    processing_class=tokenizer,
+    args=training_arguments
+)
+
+train_result = trainer.train()
