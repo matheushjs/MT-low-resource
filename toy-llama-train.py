@@ -136,3 +136,9 @@ trainer = SFTTrainer(
 )
 
 train_result = trainer.train()
+metrics = train_result.metrics
+max_train_samples = len(dataset["train"])
+metrics["train_samples"] = len(dataset["train"])
+trainer.log_metrics("train", metrics)
+trainer.save_metrics("train", metrics)
+
