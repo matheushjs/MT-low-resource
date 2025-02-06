@@ -110,7 +110,14 @@ parser.add_argument("--warmup-ratio",
         help="Warmup ratio for training. Can be integer for no. of steps.",
         type=float,
         default=0.03)
-
+parser.add_argument("--eval-steps",
+        help="Frequency of evaluation.",
+        type=int,
+        default=100)
+parser.add_argument("--post-eval-steps",
+        help="Frequency of evaluation in post-training.",
+        type=int,
+        default=20)
 
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
 args = parser.parse_args()
