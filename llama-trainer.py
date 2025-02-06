@@ -98,6 +98,18 @@ parser.add_argument("--post-learning-rate",
         help="Learning rate for post-training.",
         type=float,
         default=1e-5)
+parser.add_argument("--weight-decay",
+        help="Weight decay for training.",
+        type=float,
+        default=0.001)
+parser.add_argument("--max-grad-norm",
+        help="Gradient clipping for training.",
+        type=float,
+        default=0.5)
+parser.add_argument("--warmup-ratio",
+        help="Warmup ratio for training. Can be integer for no. of steps.",
+        type=float,
+        default=0.03)
 
 
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
