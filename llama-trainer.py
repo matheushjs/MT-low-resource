@@ -90,6 +90,15 @@ parser.add_argument("--gradient-accumulation-steps",
         help="Number of steps to accumulate the gradients before updating weights.",
         type=int,
         default=2)
+parser.add_argument("--learning-rate",
+        help="Learning rate for training.",
+        type=float,
+        default=5e-4)
+parser.add_argument("--post-learning-rate",
+        help="Learning rate for post-training.",
+        type=float,
+        default=1e-5)
+
 
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
 args = parser.parse_args()
