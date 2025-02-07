@@ -118,6 +118,18 @@ parser.add_argument("--post-eval-steps",
         help="Frequency of evaluation in post-training.",
         type=int,
         default=20)
+parser.add_argument("--lora-r",
+        help="LoRA r parameter.",
+        type=int,
+        default=64)
+parser.add_argument("--lora-alpha",
+        help="LoRA alpha parameter.",
+        type=int,
+        default=128)
+parser.add_argument("--lora-dropout",
+        help="LoRA layers dropout probability.",
+        type=float,
+        default=0.05)
 
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
 args = parser.parse_args()
