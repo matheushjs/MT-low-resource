@@ -31,6 +31,7 @@ def pklload(file):
     with open(file, "rb") as fp:
         return pickle.load(fp)
 
+
 parser = argparse.ArgumentParser(prog='Llama Model Trainer')
 parser.add_argument("--lang-pairs",
         help="Comma-separated language pairs to use. Direction matters.",
@@ -133,4 +134,24 @@ parser.add_argument("--lora-dropout",
 
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
 args = parser.parse_args()
+
+if args.main_lang_pair not in args.lang_pairs:
+    print("Main language pair must be included in --lang-pairs.")
+    sys.exit(1)
+
+if args.post_training_steps > 0 and args.training_steps == 0:
+    print("If --post-training-steps is non-zero, --training-steps must also be non-zero.")
+    sys.exit(2)
+
+engfirst = all([ i.split("-")[0] == 'en' for i in args.lang_pairs ])
+englast  = all([ i.split("-")[1] == 'en' for i in args.lang_pairs ])
+if not (engfirst ^ englast):
+    print("In --lang-pairs, either 'en' always comes first, or it always comes last. The lang pairs provided are mixed.")
+    sys.exit(3)
+
+print("Beginning program.")
+print("Command executed: {}".format(' '.join(sys.argv)))
+for i, j in args._get_kwargs():
+    print("{}: {}".format(i, j))
+print("==================")
 
