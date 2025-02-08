@@ -176,3 +176,31 @@ def cleanup():
     gc.collect()
     torch.cuda.empty_cache()
 
+def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
+    """Generate Dataset for Llama or Qwen"""
+    
+    dataset = load_dataset("json", data_files={
+        "train": "./ted-multiling/train.json",
+        "test": "./ted-multiling/test.json",
+        "dev": "./ted-multiling/dev.json"
+    })
+
+    paired_sentences_datasets = []
+
+    for lang_pair in lang_pairs:
+        lang1, lang2 = lang_pair.split("-")
+        name1, name2 = Language.from_part1(lang1).name, Language.from_part1(lang2).name
+
+        new_data = dataset.select_columns([lang1, lang2]) \
+                    .filter(lambda x: x[lang1] != "__NULL__" and x[lang2] != "__NULL__", num_proc=4) \
+                    .map(lambda x: {
+                        'lang1': lang1,
+                        'lang2': lang2,
+                        'name1': name1,
+                        'name2': name2,
+                        'sentence1': x[lang1],
+                        'sentence2': x[lang2]
+                    }, num_proc=4) \
+                    .remove_columns([lang1, lang2])
+        
+        print(new_data)
