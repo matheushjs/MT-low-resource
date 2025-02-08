@@ -161,3 +161,18 @@ FLORES_TO_PART1 = {'bam_Latn':'bm','vec_Latn':None,'prs_Arab':None,'tuk_Latn':'t
 PART3_TO_FLORES = { j: i for i,j in FLORES_TO_PART3.items() }
 PART1_TO_FLORES = { j: i for i,j in FLORES_TO_PART1.items() }
 
+EXPERIMENT_NAME = "-".join([
+    'results-llama',
+    '-'.join(sorted(args.lang_pairs)),
+    f'mainpair{args.main_lang_pair}',
+    f'stepsA{args.training_steps}',
+    f'stepsB{args.post_training_steps}',
+    f'batchsize{args.batch_size}'
+])
+MODEL_SAVE_PATH = './checkpoints/{}'.format(EXPERIMENT_NAME)
+
+def cleanup():
+    """Try to free GPU memory"""
+    gc.collect()
+    torch.cuda.empty_cache()
+
