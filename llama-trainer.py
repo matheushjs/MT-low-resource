@@ -203,4 +203,21 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
                     }, num_proc=4) \
                     .remove_columns([lang1, lang2])
         
-        print(new_data)
+        # if args.limit_train_corpus > 0 and len(new_data["train"]) > args.limit_train_corpus:
+        #     new_data["train"] = new_data["train"].shuffle().select(range(args.limit_train_corpus))
+
+        # TODO: implement this properly (with a custom Dataset subclass)
+        # For now, we truncate OR expand all corpuses to the limit_train_corpus
+        if args.limit_train_corpus > 0:
+            if len(new_data["train"]) > args.limit_train_corpus:
+                new_data["train"] = new_data["train"].shuffle().select(range(args.limit_train_corpus))
+            elif len(new_data["train"]) < args.limit_train_corpus:
+                multiplier = int(np.ceil(args.limit_train_corpus / len(new_data["train"])))
+                new_data["train"] = datasets.concatenate_datasets([ new_data["train"] for k in range(multiplier) ])
+                new_data["train"] = new_data["train"].select(range(args.limit_train_corpus))
+
+        print(f"Length of {lang_pair} dataset:", len(new_data["train"]), len(new_data["dev"]), len(new_data["test"]))
+
+        paired_sentences_datasets.append(new_data)
+
+    print(paired_sentences_datasets)
