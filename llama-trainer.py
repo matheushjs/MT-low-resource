@@ -220,4 +220,25 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
 
         paired_sentences_datasets.append(new_data)
 
-    print(paired_sentences_datasets)
+    lengths = [ len(i["train"]) for i in paired_sentences_datasets ]
+    multipliers = [ max(lengths) // i for i in lengths ]
+    leftovers = [ max(lengths) % i for i in lengths ]
+    to_concatenate = []
+
+    print("Multipliers for each dataset: ", list(zip(lang_pairs, multipliers)))
+
+    for idx, (a, b) in enumerate(zip(multipliers, leftovers)):
+        to_concatenate.extend([ paired_sentences_datasets[idx]["train"] ] * a)
+        
+        if b > 0:
+            t = to_concatenate[-1]
+            new_samples = t.shuffle().select(range(b))
+            to_concatenate[-1] = datasets.concatenate_datasets([t, new_samples])
+    
+    new_dataset = DatasetDict({
+        "train": datasets.concatenate_datasets(to_concatenate),
+        "test": datasets.concatenate_datasets([ i["test"] for i in paired_sentences_datasets ]),
+        "dev": datasets.concatenate_datasets([ i["dev"] for i in paired_sentences_datasets ])
+    })
+
+    print(new_dataset)
