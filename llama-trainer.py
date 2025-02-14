@@ -241,4 +241,20 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
         "dev": datasets.concatenate_datasets([ i["dev"] for i in paired_sentences_datasets ])
     })
 
-    print(new_dataset)
+    def _format_template(row):
+        instruction = f"You are a professional translator proficient in translating {row["name1"]} text to {row["name2"]}. " + \
+                       "Your responses should contain only the translated text without any additional commentary."
+        prompt = f"Translate this from {row["name1"]} to {row["name2"]}: {row["sentence1"]}"
+        row_json = [{"role": "system", "content": instruction },
+                    {"role": "user", "content": prompt },
+                    {"role": "assistant", "content": row["sentence2"] } ]
+        text = tokenizer.apply_chat_template(row_json, tokenize=False)
+
+        row["instruction"] = instruction
+        row["response"] = row["sentence2"]
+        row["text"] = text
+
+        return row
+
+    return new_dataset.map(_format_template, num_proc=4).shuffle()
+
