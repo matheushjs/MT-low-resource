@@ -294,3 +294,35 @@ def find_all_linear_names(model):
     if 'lm_head' in lora_module_names:  # needed for 16 bit
         lora_module_names.remove('lm_head')
     return list(lora_module_names)
+
+if __name__ == "__main__":
+    if args.load_existing != "":
+        checkpoint = args.load_existing
+    else:
+        checkpoint = "meta-llama/Llama-3.2-3B-Instruct"
+
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint) #, padding_size="left")
+
+    # Set torch dtype and attention implementation
+    # NOTE: This might cause result differences between Euler and KIT clusters
+    if torch.cuda.get_device_capability()[0] >= 8:
+        torch_dtype = torch.bfloat16
+    else:
+        torch_dtype = torch.float16
+    print(f"Compute capability: {torch.cuda.get_device_capability()[0]}. Loading model with torch_dtype {torch_dtype}.")
+
+    # QLoRA config
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch_dtype,
+        bnb_4bit_use_double_quant=True,
+    )
+
+    # Load model
+    model = AutoModelForCausalLM.from_pretrained(
+        checkpoint,
+        quantization_config=bnb_config,
+        device_map="auto"
+    )
+
