@@ -320,9 +320,19 @@ if __name__ == "__main__":
     )
 
     # Load model
-    model = AutoModelForCausalLM.from_pretrained(
-        checkpoint,
-        quantization_config=bnb_config,
-        device_map="auto"
-    )
+    if args.training_steps > 0:
+        print("Loading QLoRA quantized model.")
+        model = AutoModelForCausalLM.from_pretrained(
+            checkpoint,
+            quantization_config=bnb_config,
+            device_map="auto"
+        )
+
+    else:
+        print("Loading model in float16/bfloat16 precision.")
+        model = AutoModelForCausalLM.from_pretrained(
+            checkpoint,
+            torch_dtype=torch_dtype,
+            device_map="auto"
+        )
 
