@@ -336,3 +336,10 @@ if __name__ == "__main__":
             device_map="auto"
         )
 
+    # tokenizer.pad_token = tokenizer.eos_token
+    # model.config.pad_token_id = tokenizer.pad_token_id
+    tokenizer.pad_token = "<|finetune_right_pad_id|>"
+
+    #tokenizer.chat_template = None
+    #model, tokenizer = setup_chat_format(model, tokenizer)
+
