@@ -343,3 +343,8 @@ if __name__ == "__main__":
     #tokenizer.chat_template = None
     #model, tokenizer = setup_chat_format(model, tokenizer)
 
+    print("===== CHAT TEMPLATE ====")
+    print("Padding side:", tokenizer.padding_side)
+    print(tokenizer.chat_template)
+    print("========================")
+
