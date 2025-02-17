@@ -348,3 +348,8 @@ if __name__ == "__main__":
     print(tokenizer.chat_template)
     print("========================")
 
+    embedding_size = model.get_input_embeddings().weight.shape[0]
+    if len(tokenizer) > embedding_size:
+        print("You might want to consider resizing the model embeddings?")
+        #model.resize_token_embeddings(len(tokenizer))
+
