@@ -353,3 +353,19 @@ if __name__ == "__main__":
         print("You might want to consider resizing the model embeddings?")
         #model.resize_token_embeddings(len(tokenizer))
 
+    main_lang1 = args.main_lang_pair.split("-")[0]
+    main_lang2 = args.main_lang_pair.split("-")[1]
+
+    batch_size = args.batch_size  # 32 already doesn't fit well to 15GB of GPU memory
+    max_length = args.tok_max_length  # token sequences will be truncated
+    training_steps = args.training_steps
+    post_training_steps = args.post_training_steps
+    patience = args.patience
+    losses = []
+    post_losses = []
+    devlosses = []
+    translations = []
+    training_step_counter = 0
+    post_training_step_counter = 0
+    time_begin = time.time()
+
