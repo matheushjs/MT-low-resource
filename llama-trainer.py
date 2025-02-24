@@ -369,3 +369,10 @@ if __name__ == "__main__":
     post_training_step_counter = 0
     time_begin = time.time()
 
+    datasets = dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs)
+
+    train_dataset = datasets["train"]
+    post_train_dataset = datasets["train"].shuffle().filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+    dev_dataset = datasets["dev"].filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+    test_dataset = datasets["test"].filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+
