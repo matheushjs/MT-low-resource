@@ -376,3 +376,12 @@ if __name__ == "__main__":
     dev_dataset = datasets["dev"].filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
     test_dataset = datasets["test"].filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
 
+    print("Printing some samples of the Llama dataset.")
+    print("lang1: ", "|".join(train_dataset["lang1"][:30]))
+    print("lang2: ", "|".join(train_dataset["lang2"][:30]))
+    print("name1: ", "|".join(train_dataset["name1"][:30]))
+    print("name2: ", "|".join(train_dataset["name2"][:30]))
+    print("sentence1:\n", "\n".join(train_dataset["sentence1"][:5]))
+    print("sentence2:\n", "\n".join(train_dataset["sentence2"][:5]))
+    print("instruction:\n", "\n".join(train_dataset["instruction"][:5]))
+    print("text:\n", "\n".join(train_dataset["text"][:5]))
