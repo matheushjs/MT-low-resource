@@ -385,3 +385,14 @@ if __name__ == "__main__":
     print("sentence2:\n", "\n".join(train_dataset["sentence2"][:5]))
     print("instruction:\n", "\n".join(train_dataset["instruction"][:5]))
     print("text:\n", "\n".join(train_dataset["text"][:5]))
+
+    print("Printing some samples of the Evaluation dataset.")
+    print("lang1: ", "|".join(dev_dataset["lang1"][:30]))
+    print("lang2: ", "|".join(dev_dataset["lang2"][:30]))
+    print("sentence1:\n", "\n".join(dev_dataset["sentence1"][:5]))
+    print("sentence2:\n", "\n".join(dev_dataset["sentence2"][:5]))
+    print("instruction:\n", "\n".join(dev_dataset["instruction"][:5]))
+    print("text:\n", "\n".join(dev_dataset["text"][:5]))
+
+    print(f"Dataset sizes:\ntrain: {len(train_dataset)}\npost_train: {len(post_train_dataset)}\ndev: {len(dev_dataset)}\ntest: {len(test_dataset)}")
+
