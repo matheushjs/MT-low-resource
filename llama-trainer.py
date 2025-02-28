@@ -439,6 +439,7 @@ if __name__ == "__main__":
             max_seq_length=args.tok_max_length,
             max_grad_norm=args.max_grad_norm,
             dataset_text_field="text", # This argument was on Trainer
+            packing=False, # This argument was on Trainer
             #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
             report_to="wandb"
         )
