@@ -396,3 +396,64 @@ if __name__ == "__main__":
 
     print(f"Dataset sizes:\ntrain: {len(train_dataset)}\npost_train: {len(post_train_dataset)}\ndev: {len(dev_dataset)}\ntest: {len(test_dataset)}")
 
+    cleanup()
+    if args.training_steps > 0:
+        modules = find_all_linear_names(model)
+
+        # LoRA config
+        peft_config = LoraConfig(
+            r=args.lora_r,
+            lora_alpha=args.lora_alpha,
+            lora_dropout=args.lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+            target_modules=modules
+        )
+        try:
+            model, tokenizer = setup_chat_format(model, tokenizer)
+        except Exception as e:
+            print(e)
+        model = get_peft_model(model, peft_config)
+
+        run = wandb.init(
+            entity="elfmathews-university-of-tsukuba",
+            project=EXPERIMENT_NAME, 
+            job_type="training", 
+            anonymous="allow"
+        )
+
+        #Hyperparamter
+        training_arguments = SFTConfig(
+            output_dir=MODEL_SAVE_PATH,
+            overwrite_output_dir=True,
+            per_device_train_batch_size=args.batch_size,
+            per_device_eval_batch_size=args.batch_size,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            num_train_epochs=args.epochs,
+            eval_strategy="steps",
+            eval_steps=args.eval_steps,
+            save_strategy="steps",
+            save_steps=args.eval_steps,
+            learning_rate=args.learning_rate if len(args.lang_pairs) > 1 else args.post_learning_rate,
+            group_by_length=False,
+            max_seq_length=args.tok_max_length,
+            max_grad_norm=args.max_grad_norm,
+            dataset_text_field="text", # This argument was on Trainer
+            #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
+            report_to="wandb"
+        )
+
+        # Setting sft parameters
+        trainer = SFTTrainer(
+            model=model,
+            train_dataset=train_dataset,
+            eval_dataset=dev_dataset,
+            peft_config=peft_config,
+            #max_seq_length=512,
+            #dataset_text_field="text",
+            processing_class=tokenizer,
+            args=training_arguments,
+        )
+
+        model.config.use_cache = False
+        train_result = trainer.train()
