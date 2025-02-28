@@ -453,6 +453,7 @@ if __name__ == "__main__":
             #dataset_text_field="text",
             processing_class=tokenizer,
             args=training_arguments,
+            callbacks=[EarlyStoppingCallback(args.patience)]
         )
 
         model.config.use_cache = False
