@@ -432,6 +432,7 @@ if __name__ == "__main__":
             num_train_epochs=args.epochs,
             eval_strategy="steps",
             eval_steps=args.eval_steps,
+            eval_accumulation_steps=50,
             save_strategy="steps",
             save_steps=args.eval_steps,
             save_total_limit=1,
