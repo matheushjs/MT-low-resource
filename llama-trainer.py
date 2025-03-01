@@ -434,6 +434,8 @@ if __name__ == "__main__":
             eval_steps=args.eval_steps,
             save_strategy="steps",
             save_steps=args.eval_steps,
+            logging_steps=1,
+            logging_strategy="steps",
             learning_rate=args.learning_rate if len(args.lang_pairs) > 1 else args.post_learning_rate,
             fp16=False,
             bf16=False,
