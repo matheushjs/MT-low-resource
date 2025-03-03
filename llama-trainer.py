@@ -471,3 +471,15 @@ if __name__ == "__main__":
 
         model.config.use_cache = False
         train_result = trainer.train()
+
+        wandb.finish()
+
+        metrics = train_result.metrics
+        for i in trainer.state.log_history:
+            if 'loss' in i:
+                losses.append(i["loss"])
+        # max_train_samples = len(dataset["train"])
+        # metrics["train_samples"] = len(dataset["train"])
+        # trainer.log_metrics("train", metrics)
+        # trainer.save_metrics("train", metrics)
+
