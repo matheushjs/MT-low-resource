@@ -510,3 +510,16 @@ if __name__ == "__main__":
                     break
         except KeyboardInterrupt:
             print("Caught Ctrl+C or SIGINT. Interrupting testing and proceeding to scoring.")
+
+        bleu_calc = sacrebleu.BLEU()
+        chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
+
+        # We should filter empty sentences, or the package will give an error.
+        idxs = []
+        for idx, row in enumerate(middle_translations):
+            if "" in row or " " in row:
+                idxs.append(idx)
+        # ALWAYS remove in inverted order :)
+        for i in idxs[::-1]:
+            middle_translations.pop(i) # del translations[i]
+
