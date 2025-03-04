@@ -483,3 +483,30 @@ if __name__ == "__main__":
         # trainer.log_metrics("train", metrics)
         # trainer.save_metrics("train", metrics)
 
+    middle_translations = []
+    if not args.skip_test and args.post_training_steps > 0:
+        print("Beginning middle testing.")
+        model.config.use_cache = True
+        try:
+            for idx, row in enumerate(test_dataset):
+                lang1 = row["lang1"]
+                lang2 = row["lang2"]
+                src_txt = row["sentence1"]
+                tgt_txt = row["sentence2"]
+                name1 = row["name1"]
+                name2 = row["name2"]
+                translated_txt = translate(src_txt, tokenizer, model, name1, name2)
+
+                middle_translations.append((tgt_txt, src_txt, translated_txt))
+
+                if idx < 20:
+                    print(f"{lang2} (target): ", tgt_txt)
+                    print(f"{lang1} (source): ", src_txt)
+                    print("Translated: ", translated_txt)
+                    print("=============================")
+
+                if args.middle_limit_test_samples > 0 and idx >= (args.middle_limit_test_samples - 1):
+                    print("Interrupting middle testing due to --middle-limit-test-samples.")
+                    break
+        except KeyboardInterrupt:
+            print("Caught Ctrl+C or SIGINT. Interrupting testing and proceeding to scoring.")
