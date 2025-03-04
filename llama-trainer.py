@@ -523,3 +523,21 @@ if __name__ == "__main__":
         for i in idxs[::-1]:
             middle_translations.pop(i) # del translations[i]
 
+        try:
+            num_removed = len(idxs)
+            total = num_removed + len(middle_translations)
+
+            print(f"Percentage of samples removed: {num_removed / total * 100:.2f}%")
+
+            bleu_score = bleu_calc.corpus_score([i[0] for i in middle_translations], [[i[2] for i in middle_translations]])
+            bleu_score.score = bleu_score.score * (len(middle_translations) / total)
+            print(bleu_score)
+
+            chrf_score = chrf_calc.corpus_score([i[0] for i in middle_translations], [[i[2] for i in middle_translations]])
+            chrf_score.score = chrf_score.score * (len(middle_translations) / total)
+            print(chrf_score)
+        except Exception as e:
+            print("Failed to calculate BLEU, ChrF or Comet scores.")
+            print(e)
+
+    time_after_train = time.time()
