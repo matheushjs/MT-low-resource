@@ -550,3 +550,64 @@ if __name__ == "__main__":
             anonymous="allow"
         )
         
+        #Hyperparamter
+        training_arguments = SFTConfig(
+            output_dir=MODEL_SAVE_PATH,
+            overwrite_output_dir=True,
+            per_device_train_batch_size=args.batch_size,
+            per_device_eval_batch_size=args.batch_size,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            optim="paged_adamw_32bit",
+            num_train_epochs=args.epochs,
+            eval_strategy="steps",
+            eval_steps=args.post_eval_steps,
+            eval_accumulation_steps=50,
+            save_strategy="steps",
+            save_steps=args.post_eval_steps,
+            save_total_limit=1,
+            load_best_model_at_end=True,
+            logging_steps=1,
+            logging_strategy="steps",
+            learning_rate=args.post_learning_rate,
+            fp16=False,
+            bf16=False,
+            weight_decay=args.weight_decay,
+            group_by_length=False,
+            max_seq_length=args.tok_max_length,
+            max_grad_norm=args.max_grad_norm,
+            warmup_ratio=args.warmup_ratio,
+            lr_scheduler_type="constant",
+            dataloader_num_workers=4,
+            dataset_text_field="text", # This argument was on Trainer
+            packing=False, # This argument was on Trainer
+            #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
+            report_to="wandb"
+        )
+
+        # Setting sft parameters
+        trainer = SFTTrainer(
+            model=model,
+            train_dataset=post_train_dataset,
+            eval_dataset=dev_dataset,
+            peft_config=peft_config,
+            #max_seq_length=512,
+            #dataset_text_field="text",
+            processing_class=tokenizer,
+            args=training_arguments,
+            callbacks=[EarlyStoppingCallback(args.post_patience)]
+        )
+
+        model.config.use_cache = False
+        post_train_result = trainer.train()
+        metrics = post_train_result.metrics
+        
+        wandb.finish()
+
+        # Available: {'loss': 1.8642, 'grad_norm': 1.6934727430343628, 'learning_rate': 2e-05, 'mean_token_accuracy': 0.5831297039985657, 'epoch': 0.0022222222222222222, 'step': 1}
+        for i in trainer.state.log_history:
+            if 'loss' in i:
+                post_losses.append(i["loss"])
+        # max_train_samples = len(dataset["train"])
+        # metrics["train_samples"] = len(dataset["train"])
+        # trainer.log_metrics("train", metrics)
+        # trainer.save_metrics("train", metrics)
