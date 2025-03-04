@@ -541,3 +541,12 @@ if __name__ == "__main__":
             print(e)
 
     time_after_train = time.time()
+
+    if args.post_training_steps > 0:
+        run = wandb.init(
+            entity="elfmathews-university-of-tsukuba",
+            project="posttrain-" + EXPERIMENT_NAME, 
+            job_type="training", 
+            anonymous="allow"
+        )
+        
