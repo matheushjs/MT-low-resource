@@ -620,3 +620,16 @@ if __name__ == "__main__":
         except ValueError:
             # The model is not quantized, but that's fine for testing.
             pass
+
+        model.config.use_cache = True
+        try:
+            for idx, row in enumerate(test_dataset):
+                lang1 = row["lang1"]
+                lang2 = row["lang2"]
+                src_txt = row["sentence1"]
+                tgt_txt = row["sentence2"]
+                name1 = row["name1"]
+                name2 = row["name2"]
+                translated_txt = translate(src_txt, tokenizer, model, name1, name2)
+
+                translations.append((tgt_txt, src_txt, translated_txt))
