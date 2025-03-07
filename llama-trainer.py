@@ -633,3 +633,19 @@ if __name__ == "__main__":
                 translated_txt = translate(src_txt, tokenizer, model, name1, name2)
 
                 translations.append((tgt_txt, src_txt, translated_txt))
+
+                if idx < 20:
+                    print(f"{lang2} (target): ", tgt_txt)
+                    print(f"{lang1} (source): ", src_txt)
+                    print("Translated: ", translated_txt)
+                    print("=============================")
+
+                if idx > 0 and idx % 100 == 0:
+                    print(f"Testing progress: {idx} / {len(test_dataset)}")
+                
+                if args.limit_test_samples > 0 and idx >= (args.limit_test_samples - 1):
+                    print("Interrupting testing due to --limit-test-samples.")
+                    break
+        except KeyboardInterrupt:
+            print("Caught Ctrl+C or SIGINT. Interrupting testing and proceeding to scoring.")
+
