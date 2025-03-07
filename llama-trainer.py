@@ -611,3 +611,12 @@ if __name__ == "__main__":
         # metrics["train_samples"] = len(dataset["train"])
         # trainer.log_metrics("train", metrics)
         # trainer.save_metrics("train", metrics)
+
+    time_after_post_train = time.time()
+    time_after_test = -1 # Initialize here so it exists even if we skip_test
+    if not args.skip_test:
+        try:
+            model.dequantize()
+        except ValueError:
+            # The model is not quantized, but that's fine for testing.
+            pass
