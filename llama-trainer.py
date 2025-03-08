@@ -663,3 +663,16 @@ if __name__ == "__main__":
             print(f"Removing row {i}, with contents {translations[i]}")
             translations.pop(i) # del translations[i]
 
+        try:
+            num_removed = len(idxs)
+            total = num_removed + len(translations)
+
+            print(f"Percentage of samples removed: {num_removed / total * 100:.2f}%")
+
+            bleu_score = bleu_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
+            bleu_score.score = bleu_score.score * (len(translations) / total)
+            print(bleu_score)
+
+            chrf_score = chrf_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
+            chrf_score.score = chrf_score.score * (len(translations) / total)
+            print(chrf_score)
