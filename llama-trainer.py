@@ -649,3 +649,17 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("Caught Ctrl+C or SIGINT. Interrupting testing and proceeding to scoring.")
 
+        time_after_test = time.time()
+        bleu_calc = sacrebleu.BLEU()
+        chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
+
+        # We should filter empty sentences, or sacrebleu will give an error.
+        idxs = []
+        for idx, row in enumerate(translations):
+            if "" in row or " " in row:
+                idxs.append(idx)
+        # Remove in inverted order
+        for i in idxs[::-1]:
+            print(f"Removing row {i}, with contents {translations[i]}")
+            translations.pop(i) # del translations[i]
+
