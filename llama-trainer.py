@@ -713,3 +713,20 @@ if __name__ == "__main__":
                 print(f"\t{lang_pair} - {epochs_finished} Epochs finished, and {remaining_percentage} remaining.")
         except:
             print("Failed to print epoch statistics, probably because model != nllb.")
+
+    if len(losses) > 0:
+        plt.figure()
+        plt.scatter(np.arange(len(losses)), losses)
+        plt.xlabel("Training step")
+        plt.ylabel("Loss")
+        plt.yscale("log")
+        plt.savefig("loss-{}.png".format(EXPERIMENT_NAME))
+
+    if len(post_losses) > 0:
+        plt.figure()
+        plt.scatter(np.arange(len(post_losses)), post_losses)
+        plt.xlabel("Post-training step")
+        plt.ylabel("Loss")
+        plt.yscale("log")
+        plt.savefig("postloss-{}.png".format(EXPERIMENT_NAME))
+
