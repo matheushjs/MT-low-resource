@@ -701,3 +701,15 @@ if __name__ == "__main__":
         except Exception as e:
             print("Failed to calculate BLEU, ChrF or Comet scores.")
             print(e)
+
+    # Do not use args.training_steps or args.post_training_steps
+    if training_steps > 0 or post_training_steps > 0:
+        try:
+            print("Training epoch statistics:")
+            for lang_pair in args.lang_pairs:
+                lang1, lang2 = lang_pair.split("-")
+                epochs_finished = train_df[lang_pair]["epoch_count"]
+                remaining_percentage = len(train_df[lang_pair]["epoch_idx"]) / len(train_df[lang_pair][lang1])
+                print(f"\t{lang_pair} - {epochs_finished} Epochs finished, and {remaining_percentage} remaining.")
+        except:
+            print("Failed to print epoch statistics, probably because model != nllb.")
