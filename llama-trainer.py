@@ -676,3 +676,28 @@ if __name__ == "__main__":
             chrf_score = chrf_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
             chrf_score.score = chrf_score.score * (len(translations) / total)
             print(chrf_score)
+
+            data = []
+            for xyz in translations:
+                data.append({
+                    "src": xyz[1],
+                    "mt": xyz[2],
+                    "ref": xyz[0]
+                })
+
+            # Since memory is a problem for us, we delete the MT model before loading the Comet model.
+            del model
+            cleanup()
+
+            try:
+                model_path = download_model("Unbabel/wmt22-comet-da", local_files_only=True)
+            except:
+                model_path = download_model("Unbabel/wmt22-comet-da")
+            comet_model = load_from_checkpoint(model_path)
+
+            model_output = comet_model.predict(data, gpus=1, num_workers=0, progress_bar=False)
+            print("COMET system score:", model_output.system_score)
+
+        except Exception as e:
+            print("Failed to calculate BLEU, ChrF or Comet scores.")
+            print(e)
