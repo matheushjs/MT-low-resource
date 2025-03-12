@@ -730,3 +730,51 @@ if __name__ == "__main__":
         plt.yscale("log")
         plt.savefig("postloss-{}.png".format(EXPERIMENT_NAME))
 
+    today = dt.today()
+    homedir = os.environ['HOME']
+    resultsdir = "results-2025-{}-{}/".format(today.month, today.day)
+    resultsfile = "results-{}.pickle".format(EXPERIMENT_NAME)
+
+    Path(os.path.join(homedir, resultsdir)).mkdir(parents=True, exist_ok=True)
+
+    time_end = time.time()
+    elapsed = time_end - time_begin
+
+    # This is dirty, but I consider results to be way too important
+    #   to be lost due to non-existing variables
+    results = {}
+    try: results["losses"] = losses
+    except: pass
+
+    try: results["post_losses"] = post_losses
+    except: pass
+
+    try: results["translations"] = translations
+    except: pass
+
+    try: results["training_step_counter"] = training_step_counter
+    except: pass
+
+    try: results["post_training_step_counter"] = post_training_step_counter
+    except: pass
+
+    try: results["elapsed_time"] = elapsed
+    except: pass
+
+    try: results["time_to_train"] = time_after_train - time_begin
+    except: pass
+
+    try: results["time_to_post_train"] = time_after_post_train - time_after_train
+    except: pass
+
+    try: results["time_to_test"] = time_after_test - time_after_post_train
+    except: pass
+
+    try:
+        pkldump(results, os.path.join(homedir, resultsdir, resultsfile))
+    except:
+        file = f"./{EXPERIMENT_NAME}.out"
+        print(f"Something went wrong in saving results. Falling back to saving as string to {file}.\nYou should rename this file as soon as you can.")
+        
+        with open(file, "w") as fp:
+            fp.write(str(results))
