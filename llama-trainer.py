@@ -560,11 +560,21 @@ if __name__ == "__main__":
         )
 
         model.config.use_cache = False
-        train_result = trainer.train()
+        try:
+            train_result = trainer.train()
+        except KeyboardInterrupt:
+            print("Caught Ctrl+C or SIGINT. Interrupting pre-training and proceeding to middle testing.")
+
+        # Cleanup checkpoints
+        print("Cleaning up checkpoints.")
+        for filename in os.listdir(MODEL_SAVE_PATH + "/"):
+            if filename.startswith("checkpoint-"):
+                dirname = os.path.join(MODEL_SAVE_PATH, filename)
+                print(f"Removing: {dirname}")
+                shutil.rmtree(dirname)
 
         wandb.finish()
 
-        metrics = train_result.metrics
         for i in trainer.state.log_history:
             if 'loss' in i:
                 losses.append(i["loss"])
