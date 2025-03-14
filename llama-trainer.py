@@ -493,10 +493,10 @@ if __name__ == "__main__":
             task_type="CAUSAL_LM",
             target_modules=modules
         )
-        try:
-            model, tokenizer = setup_chat_format(model, tokenizer)
-        except Exception as e:
-            print(e)
+        # try:
+        #     model, tokenizer = setup_chat_format(model, tokenizer)
+        # except Exception as e:
+        #     print(e)
         model = get_peft_model(model, peft_config)
 
         run = wandb.init(
@@ -506,6 +506,9 @@ if __name__ == "__main__":
             anonymous="allow"
         )
 
+        epoch_batch_count = len(train_dataset) / args.batch_size
+        warmup_steps = int(args.warmup_ratio * epoch_batch_count)
+
         #Hyperparamter
         training_arguments = SFTConfig(
             output_dir=MODEL_SAVE_PATH,
@@ -513,8 +516,9 @@ if __name__ == "__main__":
             per_device_train_batch_size=args.batch_size,
             per_device_eval_batch_size=args.batch_size,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
-            optim="paged_adamw_32bit",
+            optim="adamw_torch",
             num_train_epochs=args.epochs,
+            max_steps=args.training_steps,
             eval_strategy="steps",
             eval_steps=args.eval_steps,
             eval_accumulation_steps=50,
@@ -529,15 +533,16 @@ if __name__ == "__main__":
             bf16=False,
             weight_decay=args.weight_decay,
             group_by_length=False,
-            max_seq_length=args.tok_max_length,
+            #max_seq_length=args.tok_max_length,
             max_grad_norm=args.max_grad_norm,
-            warmup_ratio=args.warmup_ratio,
-            lr_scheduler_type="constant",
+            warmup_steps=warmup_steps,
+            lr_scheduler_type="constant_with_warmup",
             dataloader_num_workers=4,
             dataset_text_field="text", # This argument was on Trainer
-            packing=False, # This argument was on Trainer
             #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
-            report_to="wandb"
+            report_to="wandb",
+            save_safetensors=False,
+            eval_on_start=True
         )
 
         # Setting sft parameters
@@ -550,6 +555,7 @@ if __name__ == "__main__":
             #dataset_text_field="text",
             processing_class=tokenizer,
             args=training_arguments,
+            #optimizers=(optimizer, scheduler),
             callbacks=[EarlyStoppingCallback(args.patience)]
         )
 
