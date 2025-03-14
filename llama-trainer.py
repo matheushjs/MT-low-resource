@@ -337,17 +337,17 @@ if __name__ == "__main__":
         print("Loading QLoRA quantized model.")
         model = AutoModelForCausalLM.from_pretrained(
             checkpoint,
-            quantization_config=bnb_config,
-            device_map="auto"
+            quantization_config=bnb_config
         )
 
+        model.to("cuda")
     else:
         print("Loading model in float16/bfloat16 precision.")
         model = AutoModelForCausalLM.from_pretrained(
             checkpoint,
-            torch_dtype=torch_dtype,
-            device_map="auto"
+            torch_dtype=torch_dtype
         )
+        model.to("cuda")
 
     # tokenizer.pad_token = tokenizer.eos_token
     # model.config.pad_token_id = tokenizer.pad_token_id
@@ -377,17 +377,86 @@ if __name__ == "__main__":
     losses = []
     post_losses = []
     devlosses = []
+    middle_translations = []
     translations = []
+    dev_translations = []
     training_step_counter = 0
     post_training_step_counter = 0
     time_begin = time.time()
 
     datasets = dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs)
 
-    train_dataset = datasets["train"]
-    post_train_dataset = datasets["train"].shuffle().filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
-    dev_dataset = datasets["dev"].filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
-    test_dataset = datasets["test"].filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+    # We have a potential problem of concurrent usage of the tokenizer, so let's just
+    # instantiate multiple of them
+    tokenizers = dict()
+    for lang_pair in args.lang_pairs:
+        lang1, lang2 = lang_pair.split("-")
+        newTok = copy.deepcopy(tokenizer)
+        newTok.src_lang = PART1_TO_FLORES[lang1]
+        newTok.tgt_lang = PART1_TO_FLORES[lang2]
+
+        if lang1 not in tokenizers:
+            tokenizers[lang1] = {lang2: newTok}
+        else:
+            tokenizers[lang1][lang2] = newTok
+
+    def _tokenize_train_fn(row):
+        instruction = f"You are a professional translator proficient in translating {row["name1"]} text to {row["name2"]}. " + \
+                       "Your responses should contain only the translated text without any additional commentary."
+        prompt = f"Translate this from {row["name1"]} to {row["name2"]}: {row["sentence1"]}"
+        row_json = [{"role": "system", "content": instruction },
+                    {"role": "user", "content": prompt },
+                    {"role": "assistant", "content": row["sentence2"] } ]
+        myTokenizer = tokenizers[row["lang1"]][row["lang2"]]
+        text = myTokenizer.apply_chat_template(row_json, tokenize=False)
+        row["text"] = text
+        return row
+
+    def _tokenize_test_fn(row):
+        instruction = f"You are a professional translator proficient in translating {row["name1"]} text to {row["name2"]}. " + \
+                       "Your responses should contain only the translated text without any additional commentary."
+        prompt = f"Translate this from {row["name1"]} to {row["name2"]}: {row["sentence1"]}"
+        row_json = [{"role": "system", "content": instruction },
+                    {"role": "user", "content": prompt }]
+        myTokenizer = tokenizers[row["lang1"]][row["lang2"]]
+        text = myTokenizer.apply_chat_template(row_json, tokenize=False, add_generation_prompt=True)
+        inputs = myTokenizer(text, return_tensors="pt", padding=True, max_length=args.tok_max_length, truncation=True)
+        row["prompt"] = text
+        row["input_ids"] = inputs["input_ids"]
+        row["attention_mask"] = inputs["attention_mask"]
+        return row
+
+    train_dataset      = datasets["train"] \
+                            .map(_tokenize_train_fn, num_proc=4)
+    post_train_dataset = train_dataset \
+                            .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2) \
+                            .shuffle()
+
+    if args.eval_all_langs:
+        full_dev_dataset = datasets["dev"].map(_tokenize_train_fn, num_proc=4)
+        dev_dataset  = full_dev_dataset
+        post_dev_dataset  = full_dev_dataset \
+                    .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+    else:
+        full_dev_dataset = datasets["dev"].map(_tokenize_train_fn, num_proc=4)
+        dev_dataset = full_dev_dataset \
+                    .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+        post_dev_dataset = dev_dataset
+    
+    full_test_dataset = datasets["test"].map(_tokenize_test_fn, num_proc=4)
+
+    test_dataset = full_test_dataset \
+                    .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+    
+    if len(args.lang_pairs) > 1:
+        if main_lang1 == "en":
+            complement_test_dataset = full_test_dataset \
+                            .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] != main_lang2)
+        else:
+            complement_test_dataset = full_test_dataset \
+                            .filter(lambda x: x["lang1"] != main_lang1 and x["lang2"] == main_lang2)
+    else:
+        complement_test_dataset = None
 
     print("Printing some samples of the Llama dataset.")
     print("lang1: ", "|".join(train_dataset["lang1"][:30]))
