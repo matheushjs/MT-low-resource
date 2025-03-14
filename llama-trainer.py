@@ -458,25 +458,27 @@ if __name__ == "__main__":
     else:
         complement_test_dataset = None
 
-    print("Printing some samples of the Llama dataset.")
+    print("Printing some samples of the dataset.")
     print("lang1: ", "|".join(train_dataset["lang1"][:30]))
     print("lang2: ", "|".join(train_dataset["lang2"][:30]))
     print("name1: ", "|".join(train_dataset["name1"][:30]))
     print("name2: ", "|".join(train_dataset["name2"][:30]))
     print("sentence1:\n", "\n".join(train_dataset["sentence1"][:5]))
     print("sentence2:\n", "\n".join(train_dataset["sentence2"][:5]))
-    print("instruction:\n", "\n".join(train_dataset["instruction"][:5]))
-    print("text:\n", "\n".join(train_dataset["text"][:5]))
+    print("text fields:")
+    for j in range(5):
+        print(train_dataset[j]["text"])
 
     print("Printing some samples of the Evaluation dataset.")
     print("lang1: ", "|".join(dev_dataset["lang1"][:30]))
     print("lang2: ", "|".join(dev_dataset["lang2"][:30]))
     print("sentence1:\n", "\n".join(dev_dataset["sentence1"][:5]))
     print("sentence2:\n", "\n".join(dev_dataset["sentence2"][:5]))
-    print("instruction:\n", "\n".join(dev_dataset["instruction"][:5]))
-    print("text:\n", "\n".join(dev_dataset["text"][:5]))
+    print("text fields:")
+    for j in range(5):
+        print(train_dataset[j]["text"])
 
-    print(f"Dataset sizes:\ntrain: {len(train_dataset)}\npost_train: {len(post_train_dataset)}\ndev: {len(dev_dataset)}\ntest: {len(test_dataset)}")
+    print(f"Dataset sizes:\ntrain: {len(train_dataset)}\npost_train: {len(post_train_dataset)}\ndev: {len(dev_dataset)}\npost_dev: {len(post_dev_dataset)}\ntest: {len(test_dataset)}")
 
     cleanup()
     if args.training_steps > 0:
