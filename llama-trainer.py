@@ -5,15 +5,16 @@ import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import argparse, sys, os, re, time, unicodedata, pickle, html
+import argparse, sys, os, re, time, unicodedata, pickle, html, copy, shutil
 import sacrebleu
 import wandb
 from iso639 import Language
 from pathlib import Path
 from sacremoses import MosesPunctNormalizer
 from transformers import (
-    AutoTokenizer, AutoConfig, AutoModelForSeq2SeqLM, AutoModelForCausalLM,
-    get_constant_schedule_with_warmup, BitsAndBytesConfig, logging, EarlyStoppingCallback
+    AutoTokenizer, AutoConfig, AutoModelForCausalLM,
+    get_constant_schedule_with_warmup, get_constant_schedule,
+    BitsAndBytesConfig, logging, EarlyStoppingCallback, DefaultDataCollator
 )
 from transformers.optimization import Adafactor
 from datasets import load_dataset, Dataset, DatasetDict
@@ -22,6 +23,7 @@ from trl import SFTTrainer, SFTConfig, setup_chat_format
 from datetime import datetime as dt
 from comet import download_model, load_from_checkpoint
 from torch.utils.data import DataLoader, Dataset as torchDataset
+from torch.optim import AdamW
 
 def pkldump(obj, file):
     with open(file, "wb") as fp:
@@ -59,8 +61,11 @@ parser.add_argument("--load-existing",
 parser.add_argument("--skip-test",
         help="Should we test the model?",
         action='store_true')
+parser.add_argument("--train-from-scratch",                                                                            |  -------------------------------------------------------------------------------------------------------------------------
+        help="Load model without loading the weights.",                                                                 |  -------------------------------------------------------------------------------------------------------------------------
+        action='store_true') 
 parser.add_argument("--patience",
-        help="Patience of early stopping. Applied to both pre- and post-training.",
+        help="Patience of early stopping.",
         type=int,
         default=50)
 parser.add_argument("--post-patience",
@@ -79,6 +84,10 @@ parser.add_argument("--limit-train-corpus",
         help="Truncates training corpus for each language to this number of sentences.",
         type=int,
         default=-1)
+parser.add_argument("--limit-main-corpus",                                                                             |  -------------------------------------------------------------------------------------------------------------------------
+        help="Truncates training corpus for the main language pair.",                                                  |  -------------------------------------------------------------------------------------------------------------------------
+        type=int,                                                                                                      |  -------------------------------------------------------------------------------------------------------------------------
+        default=-1)
 parser.add_argument("--limit-test-samples",
         help="Tests on only the first N samples.",
         type=int,
@@ -94,11 +103,11 @@ parser.add_argument("--gradient-accumulation-steps",
 parser.add_argument("--learning-rate",
         help="Learning rate for training.",
         type=float,
-        default=5e-4)
+        default=5e-5)
 parser.add_argument("--post-learning-rate",
-        help="Learning rate for post-training.",
+        help="Learning rate for post-training. If -1, uses learning_rate / 10.",
         type=float,
-        default=1e-5)
+        default=-1.0)
 parser.add_argument("--weight-decay",
         help="Weight decay for training.",
         type=float,
@@ -118,7 +127,11 @@ parser.add_argument("--eval-steps",
 parser.add_argument("--post-eval-steps",
         help="Frequency of evaluation in post-training.",
         type=int,
-        default=20)
+        default=100)
+parser.add_argument("--reset-prob",
+        help="Probability of resetting a layer (Not used).",
+        type=float,
+        default=0)
 parser.add_argument("--lora-r",
         help="LoRA r parameter.",
         type=int,
