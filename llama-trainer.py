@@ -84,9 +84,9 @@ parser.add_argument("--limit-train-corpus",
         help="Truncates training corpus for each language to this number of sentences.",
         type=int,
         default=-1)
-parser.add_argument("--limit-main-corpus",                                                                             |  -------------------------------------------------------------------------------------------------------------------------
-        help="Truncates training corpus for the main language pair.",                                                  |  -------------------------------------------------------------------------------------------------------------------------
-        type=int,                                                                                                      |  -------------------------------------------------------------------------------------------------------------------------
+parser.add_argument("--limit-main-corpus",
+        help="Truncates training corpus for the main language pair.",
+        type=int,
         default=-1)
 parser.add_argument("--limit-test-samples",
         help="Tests on only the first N samples.",
@@ -183,6 +183,7 @@ EXPERIMENT_NAME = "-".join([
     f'batchsize{args.batch_size}'
 ])
 MODEL_SAVE_PATH = './checkpoints/{}'.format(EXPERIMENT_NAME)
+POST_MODEL_SAVE_PATH = './checkpoints/posttrain-{}'.format(EXPERIMENT_NAME)
 
 def cleanup():
     """Try to free GPU memory"""
@@ -193,12 +194,17 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
     """Generate Dataset for Llama or Qwen"""
     
     dataset = load_dataset("json", data_files={
-        "train": "./ted-multiling/train.json",
-        "test": "./ted-multiling/test.json",
-        "dev": "./ted-multiling/dev.json"
+        "train": "./ted-multiling-filtered/train.json",
+        "test": "./ted-multiling-filtered/test.json",
+        "dev": "./ted-multiling-filtered/dev.json"
     })
 
+    if 'pt' in dataset["train"].column_names:
+        dataset = dataset.remove_columns("pt")
+    dataset = dataset.rename_column("pt-br", "pt")
+
     paired_sentences_datasets = []
+    main_lang_eval_size = -1
 
     for lang_pair in lang_pairs:
         lang1, lang2 = lang_pair.split("-")
@@ -215,9 +221,12 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
                         'sentence2': x[lang2]
                     }, num_proc=4) \
                     .remove_columns([lang1, lang2])
-        
-        # if args.limit_train_corpus > 0 and len(new_data["train"]) > args.limit_train_corpus:
-        #     new_data["train"] = new_data["train"].shuffle().select(range(args.limit_train_corpus))
+
+        if lang_pair == args.main_lang_pair and args.limit_main_corpus > 0:
+            print(f"Reducing main language train corpus from {len(new_data["train"])} to {args.limit_main_corpus}.")
+            new_data["train"] = new_data["train"].shuffle().select(range(args.limit_main_corpus))
+
+        print(f"Length of {lang_pair} dataset:", len(new_data["train"]), len(new_data["dev"]), len(new_data["test"]))
 
         # TODO: implement this properly (with a custom Dataset subclass)
         # For now, we truncate OR expand all corpuses to the limit_train_corpus
@@ -229,9 +238,15 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
                 new_data["train"] = datasets.concatenate_datasets([ new_data["train"] for k in range(multiplier) ])
                 new_data["train"] = new_data["train"].select(range(args.limit_train_corpus))
 
-        print(f"Length of {lang_pair} dataset:", len(new_data["train"]), len(new_data["dev"]), len(new_data["test"]))
+        if lang_pair == args.main_lang_pair:
+            main_lang_eval_size = len(new_data["dev"])
 
         paired_sentences_datasets.append(new_data)
+
+    if args.eval_all_langs:
+        if main_lang_eval_size <= 0: raise Exception("Something wrong with main_lang_eval_size.")
+        for d in paired_sentences_datasets:
+            d["dev"] = d["dev"].select(range(main_lang_eval_size))
 
     lengths = [ len(i["train"]) for i in paired_sentences_datasets ]
     multipliers = [ max(lengths) // i for i in lengths ]
@@ -254,22 +269,7 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
         "dev": datasets.concatenate_datasets([ i["dev"] for i in paired_sentences_datasets ])
     })
 
-    def _format_template(row):
-        instruction = f"You are a professional translator proficient in translating {row["name1"]} text to {row["name2"]}. " + \
-                       "Your responses should contain only the translated text without any additional commentary."
-        prompt = f"Translate this from {row["name1"]} to {row["name2"]}: {row["sentence1"]}"
-        row_json = [{"role": "system", "content": instruction },
-                    {"role": "user", "content": prompt },
-                    {"role": "assistant", "content": row["sentence2"] } ]
-        text = tokenizer.apply_chat_template(row_json, tokenize=False)
-
-        row["instruction"] = instruction
-        row["response"] = row["sentence2"]
-        row["text"] = text
-
-        return row
-
-    return new_dataset.map(_format_template, num_proc=4).shuffle()
+    return new_dataset.shuffle()
 
 def translate(
     text, tokenizer, model, src_lang, tgt_lang, 
