@@ -273,7 +273,7 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
 
 def translate(
     text, tokenizer, model, src_lang, tgt_lang, 
-    a=32, b=3, max_input_length=256, num_beams=1, **kwargs
+    a=32, b=3, max_input_length=256, num_beams=3, **kwargs
 ):
     """Turn a text or a list of texts into a list of translations"""
     
