@@ -308,6 +308,61 @@ def find_all_linear_names(model):
         lora_module_names.remove('lm_head')
     return list(lora_module_names)
 
+def get_scores(translations, do_comet=False):
+    translations = [ i for i in translations ]
+    bleu_score  = None
+    chrf_score  = None
+    comet_score = None
+
+    bleu_calc = sacrebleu.BLEU()
+    chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
+
+    # We should filter empty sentences, or the package will give an error.
+    idxs = []
+    for idx, row in enumerate(translations):
+        if "" in row or " " in row:
+            idxs.append(idx)
+    # ALWAYS remove in inverted order :)
+    for i in idxs[::-1]:
+        print(f"Removing row {i}, with contents {translations[i]}")
+        translations.pop(i) # del translations[i]
+
+    try:
+        num_removed = len(idxs)
+        total = num_removed + len(translations)
+
+        print(f"Percentage of samples removed: {num_removed / total * 100:.2f}%")
+
+        bleu_score = bleu_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
+        bleu_score.score = bleu_score.score * (len(translations) / total)
+
+        chrf_score = chrf_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
+        chrf_score.score = chrf_score.score * (len(translations) / total)
+
+        if do_comet:
+            data = []
+            for xyz in translations:
+                data.append({
+                    "src": xyz[1],
+                    "mt": xyz[2],
+                    "ref": xyz[0]
+                })
+
+            try:
+                model_path = download_model("Unbabel/wmt22-comet-da", local_files_only=True)
+            except:
+                model_path = download_model("Unbabel/wmt22-comet-da")
+            comet_model = load_from_checkpoint(model_path)
+
+            model_output = comet_model.predict(data, gpus=1, num_workers=0, progress_bar=False)
+            comet_score = model_output.system_score
+
+    except Exception as e:
+        print("Failed to calculate BLEU, ChrF or Comet scores.")
+        print(e)
+
+    return bleu_score, chrf_score, comet_score
+
 if __name__ == "__main__":
     if args.load_existing != "":
         checkpoint = args.load_existing
@@ -583,62 +638,17 @@ if __name__ == "__main__":
         # trainer.log_metrics("train", metrics)
         # trainer.save_metrics("train", metrics)
 
-    middle_translations = []
     if not args.skip_test and args.post_training_steps > 0:
-        print("Beginning middle testing.")
         model.config.use_cache = True
-        try:
-            for idx, row in enumerate(test_dataset):
-                lang1 = row["lang1"]
-                lang2 = row["lang2"]
-                src_txt = row["sentence1"]
-                tgt_txt = row["sentence2"]
-                name1 = row["name1"]
-                name2 = row["name2"]
-                translated_txt = translate(src_txt, tokenizer, model, name1, name2)
 
-                middle_translations.append((tgt_txt, src_txt, translated_txt))
+        print("Beginning middle testing.")
+        middle_translations = get_translations(test_dataset, tokenizer, model, args.middle_limit_test_samples)
 
-                if idx < 20:
-                    print(f"{lang2} (target): ", tgt_txt)
-                    print(f"{lang1} (source): ", src_txt)
-                    print("Translated: ", translated_txt)
-                    print("=============================")
-
-                if args.middle_limit_test_samples > 0 and idx >= (args.middle_limit_test_samples - 1):
-                    print("Interrupting middle testing due to --middle-limit-test-samples.")
-                    break
-        except KeyboardInterrupt:
-            print("Caught Ctrl+C or SIGINT. Interrupting testing and proceeding to scoring.")
-
-        bleu_calc = sacrebleu.BLEU()
-        chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
-
-        # We should filter empty sentences, or the package will give an error.
-        idxs = []
-        for idx, row in enumerate(middle_translations):
-            if "" in row or " " in row:
-                idxs.append(idx)
-        # ALWAYS remove in inverted order :)
-        for i in idxs[::-1]:
-            middle_translations.pop(i) # del translations[i]
-
-        try:
-            num_removed = len(idxs)
-            total = num_removed + len(middle_translations)
-
-            print(f"Percentage of samples removed: {num_removed / total * 100:.2f}%")
-
-            bleu_score = bleu_calc.corpus_score([i[0] for i in middle_translations], [[i[2] for i in middle_translations]])
-            bleu_score.score = bleu_score.score * (len(middle_translations) / total)
-            print(bleu_score)
-
-            chrf_score = chrf_calc.corpus_score([i[0] for i in middle_translations], [[i[2] for i in middle_translations]])
-            chrf_score.score = chrf_score.score * (len(middle_translations) / total)
-            print(chrf_score)
-        except Exception as e:
-            print("Failed to calculate BLEU, ChrF or Comet scores.")
-            print(e)
+        print("\nStarting to score the test dataset (middle testing).")
+        print(f"Number of sentences: {len(middle_translations)}")
+        test_scores = get_scores(middle_translations, do_comet=False)
+        print(test_scores[0])
+        print(test_scores[1])
 
     time_after_train = time.time()
 
