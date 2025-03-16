@@ -272,25 +272,17 @@ def dataset_for_llama(tokenizer, lang_pairs=args.lang_pairs):
     return new_dataset.shuffle()
 
 def translate(
-    text, tokenizer, model, src_lang, tgt_lang, 
+    input_ids, attention_mask, tokenizer, model,
     a=32, b=3, max_input_length=256, num_beams=3, **kwargs
 ):
     """Turn a text or a list of texts into a list of translations"""
-    
-    instruction = f"You are a professional translator proficient in translating {src_lang} text to {tgt_lang}. \
-    Your responses should contain only the translated text without any additional commentary."
-    prompt = f"Translate this from {src_lang} to {tgt_lang}: {text}"
-    chat_style_prompt = [
-            {"role": "system", "content": instruction},
-            {"role": "user", "content": prompt}
-        ]
-    prompt = tokenizer.apply_chat_template(chat_style_prompt, tokenize=False, add_generation_prompt=True)
-    inputs = tokenizer(prompt, return_tensors="pt", padding=True, max_length=max_input_length, truncation=True)
+
     model.eval()
     result = model.generate(
-        **inputs.to(model.device),
+        input_ids=input_ids,
+        attention_mask=attention_mask,
         num_beams=num_beams,
-        max_new_tokens=int(a + b * len(text)),
+        max_new_tokens=int(a + b * input_ids),
         do_sample=False, top_p=None, temperature=None
     )
     text = tokenizer.decode(result[0], skip_special_tokens=True)
