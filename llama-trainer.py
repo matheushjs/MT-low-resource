@@ -288,6 +288,35 @@ def translate(
     text = tokenizer.decode(result[0], skip_special_tokens=True)
     return "".join(text.split("assistant")[1:]).strip()
 
+def get_translations(dataset, tokenizer, model, limit_samples=-1, do_print=True):
+    translations = []
+    try:
+        for idx, row in enumerate(dataset):
+            lang1 = row["lang1"]
+            lang2 = row["lang2"]
+            X_eng = row["sentence1"]
+            X_hye = row["sentence2"]
+            input_ids = row["input_ids"]
+            attention_mask = row["attention_mask"]
+            eng_to_hye = translate(input_ids, attention_mask, tokenizer, model)
+
+            translations.append((X_hye, X_eng, eng_to_hye))
+
+            if do_print and idx < 20:
+                print(f"{lang2} (target): ", X_hye)
+                print(f"{lang1} (source): ", X_eng)
+                print("Translated: ", eng_to_hye)
+                print("=============================")
+
+            if limit_samples > 0 and idx >= (limit_samples - 1):
+                print("Interrupting get_translations() due to 'limit_samples' argument.")
+                break
+
+    except KeyboardInterrupt:
+        print("Caught Ctrl+C or SIGINT. Interrupting testing.")
+
+    return translations
+
 def find_all_linear_names(model):
     """For use with LoRA, which trains only linear layers."""
     cls = bnb.nn.Linear4bit
