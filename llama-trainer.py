@@ -680,16 +680,25 @@ if __name__ == "__main__":
             job_type="training", 
             anonymous="allow"
         )
+
+        epoch_batch_count = len(train_dataset) / (args.batch_size * args.gradient_accumulation_steps)
+        warmup_steps = int(args.warmup_ratio * epoch_batch_count)
+
+        if args.post_learning_rate < 0:
+            post_lr = args.learning_rate / 10
+        else:
+            post_lr = args.post_learning_rate
         
         #Hyperparamter
         training_arguments = SFTConfig(
-            output_dir=MODEL_SAVE_PATH,
+            output_dir=POST_MODEL_SAVE_PATH,
             overwrite_output_dir=True,
             per_device_train_batch_size=args.batch_size,
             per_device_eval_batch_size=args.batch_size,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
-            optim="paged_adamw_32bit",
+            optim="adamw_torch",
             num_train_epochs=args.epochs,
+            max_steps=args.post_training_steps,
             eval_strategy="steps",
             eval_steps=args.post_eval_steps,
             eval_accumulation_steps=50,
@@ -699,32 +708,33 @@ if __name__ == "__main__":
             load_best_model_at_end=True,
             logging_steps=1,
             logging_strategy="steps",
-            learning_rate=args.post_learning_rate,
+            learning_rate=post_lr,
             fp16=False,
             bf16=False,
             weight_decay=args.weight_decay,
             group_by_length=False,
-            max_seq_length=args.tok_max_length,
+            #max_seq_length=args.tok_max_length,
             max_grad_norm=args.max_grad_norm,
-            warmup_ratio=args.warmup_ratio,
-            lr_scheduler_type="constant",
+            warmup_steps=warmup_steps,
+            lr_scheduler_type="constant_with_warmup",
             dataloader_num_workers=4,
             dataset_text_field="text", # This argument was on Trainer
-            packing=False, # This argument was on Trainer
             #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
-            report_to="wandb"
+            report_to="wandb",
+            save_safetensors=False
         )
 
         # Setting sft parameters
         trainer = SFTTrainer(
             model=model,
             train_dataset=post_train_dataset,
-            eval_dataset=dev_dataset,
+            eval_dataset=post_dev_dataset,
             peft_config=peft_config,
             #max_seq_length=512,
             #dataset_text_field="text",
             processing_class=tokenizer,
             args=training_arguments,
+            #optimizers=(optimizer, scheduler),
             callbacks=[EarlyStoppingCallback(args.post_patience)]
         )
 
