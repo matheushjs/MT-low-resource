@@ -769,85 +769,47 @@ if __name__ == "__main__":
             pass
 
         model.config.use_cache = True
-        try:
-            for idx, row in enumerate(test_dataset):
-                lang1 = row["lang1"]
-                lang2 = row["lang2"]
-                src_txt = row["sentence1"]
-                tgt_txt = row["sentence2"]
-                name1 = row["name1"]
-                name2 = row["name2"]
-                translated_txt = translate(src_txt, tokenizer, model, name1, name2)
-
-                translations.append((tgt_txt, src_txt, translated_txt))
-
-                if idx < 20:
-                    print(f"{lang2} (target): ", tgt_txt)
-                    print(f"{lang1} (source): ", src_txt)
-                    print("Translated: ", translated_txt)
-                    print("=============================")
-
-                if idx > 0 and idx % 100 == 0:
-                    print(f"Testing progress: {idx} / {len(test_dataset)}")
-                
-                if args.limit_test_samples > 0 and idx >= (args.limit_test_samples - 1):
-                    print("Interrupting testing due to --limit-test-samples.")
-                    break
-        except KeyboardInterrupt:
-            print("Caught Ctrl+C or SIGINT. Interrupting testing and proceeding to scoring.")
+        
+        print("Beginning testing on the test dataset (LRL only).")
+        translations = get_translations(test_dataset, tokenizer, model, args.limit_test_samples)
+        
+        if complement_test_dataset != None:
+            print("Beginning testing on the complementary test dataset (all but the LRL).")
+            comp_translations = get_translations(complement_test_dataset, tokenizer, model, args.limit_test_samples)
 
         time_after_test = time.time()
-        bleu_calc = sacrebleu.BLEU()
-        chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
 
-        # We should filter empty sentences, or sacrebleu will give an error.
-        idxs = []
-        for idx, row in enumerate(translations):
-            if "" in row or " " in row:
-                idxs.append(idx)
-        # Remove in inverted order
-        for i in idxs[::-1]:
-            print(f"Removing row {i}, with contents {translations[i]}")
-            translations.pop(i) # del translations[i]
+        # Since memory is a problem for us, we delete the MT model before scoring with Comet.
+        del model
+        cleanup()
+        
+        all_bleu  = []
+        all_chrf  = []
+        all_comet = []
 
-        try:
-            num_removed = len(idxs)
-            total = num_removed + len(translations)
+        print("\nStarting to score the test dataset (LRL only).")
+        print(f"Number of sentences: {len(translations)}")
+        test_scores = get_scores(translations, do_comet=True)
+        print(test_scores[0])
+        print(test_scores[1])
+        print("COMET system score:", test_scores[2])
+        all_bleu  += [test_scores[0].score] * len(translations)
+        all_chrf  += [test_scores[1].score] * len(translations)
+        all_comet += [test_scores[2]] * len(translations)
 
-            print(f"Percentage of samples removed: {num_removed / total * 100:.2f}%")
-
-            bleu_score = bleu_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
-            bleu_score.score = bleu_score.score * (len(translations) / total)
-            print(bleu_score)
-
-            chrf_score = chrf_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
-            chrf_score.score = chrf_score.score * (len(translations) / total)
-            print(chrf_score)
-
-            data = []
-            for xyz in translations:
-                data.append({
-                    "src": xyz[1],
-                    "mt": xyz[2],
-                    "ref": xyz[0]
-                })
-
-            # Since memory is a problem for us, we delete the MT model before loading the Comet model.
-            del model
-            cleanup()
-
-            try:
-                model_path = download_model("Unbabel/wmt22-comet-da", local_files_only=True)
-            except:
-                model_path = download_model("Unbabel/wmt22-comet-da")
-            comet_model = load_from_checkpoint(model_path)
-
-            model_output = comet_model.predict(data, gpus=1, num_workers=0, progress_bar=False)
-            print("COMET system score:", model_output.system_score)
-
-        except Exception as e:
-            print("Failed to calculate BLEU, ChrF or Comet scores.")
-            print(e)
+        if complement_test_dataset != None:
+            print("\nStarting to score the complementary test dataset (all but the LRL).")
+            print(f"Number of sentences: {len(comp_translations)}")
+            comp_test_scores = get_scores(comp_translations, do_comet=True)
+            print("(comp_test)", comp_test_scores[0])
+            print("(comp_test)", comp_test_scores[1])
+            print("COMET system score:", comp_test_scores[2])
+            all_bleu  += [comp_test_scores[0].score] * len(comp_translations)
+            all_chrf  += [comp_test_scores[1].score] * len(comp_translations)
+            all_comet += [comp_test_scores[2]] * len(comp_translations)
+            print("Full test dataset average BLEU:", np.mean(all_bleu))
+            print("Full test dataset average chrF2++:", np.mean(all_chrf))
+            print("Full test dataset average COMET:", np.mean(all_comet))
 
     # Do not use args.training_steps or args.post_training_steps
     if training_steps > 0 or post_training_steps > 0:
