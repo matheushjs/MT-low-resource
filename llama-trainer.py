@@ -61,9 +61,9 @@ parser.add_argument("--load-existing",
 parser.add_argument("--skip-test",
         help="Should we test the model?",
         action='store_true')
-parser.add_argument("--train-from-scratch",                                                                            |  -------------------------------------------------------------------------------------------------------------------------
-        help="Load model without loading the weights.",                                                                 |  -------------------------------------------------------------------------------------------------------------------------
-        action='store_true') 
+parser.add_argument("--train-from-scratch",
+        help="Load model without loading the weights.",
+        action='store_true')
 parser.add_argument("--patience",
         help="Patience of early stopping.",
         type=int,
