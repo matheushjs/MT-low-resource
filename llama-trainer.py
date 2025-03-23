@@ -144,6 +144,9 @@ parser.add_argument("--lora-dropout",
         help="LoRA layers dropout probability.",
         type=float,
         default=0.05)
+parser.add_argument("--eval-all-langs",
+        help="Should we evaluate on all languages during pre-training?",
+        action='store_true')
 
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
 args = parser.parse_args()
