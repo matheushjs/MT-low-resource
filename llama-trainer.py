@@ -282,11 +282,12 @@ def translate(
 
     model.eval()
     result = model.generate(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
+        input_ids=torch.Tensor(input_ids).to(model.device),
+        attention_mask=torch.Tensor(attention_mask).to(model.device),
         num_beams=num_beams,
-        max_new_tokens=int(a + b * input_ids),
-        do_sample=False, top_p=None, temperature=None
+        max_new_tokens=int(a + b * len(input_ids)),
+        do_sample=False, top_p=None, temperature=None,
+        pad_token_id=tokenizer.eos_token_id
     )
     text = tokenizer.decode(result[0], skip_special_tokens=True)
     return "".join(text.split("assistant")[1:]).strip()
@@ -418,8 +419,6 @@ if __name__ == "__main__":
             checkpoint,
             quantization_config=bnb_config
         )
-
-        model.to("cuda")
     else:
         print("Loading model in float16/bfloat16 precision.")
         model = AutoModelForCausalLM.from_pretrained(
