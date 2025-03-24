@@ -558,6 +558,11 @@ if __name__ == "__main__":
 
     print(f"Dataset sizes:\ntrain: {len(train_dataset)}\npost_train: {len(post_train_dataset)}\ndev: {len(dev_dataset)}\npost_dev: {len(post_dev_dataset)}\ntest: {len(test_dataset)}")
 
+    if args.post_learning_rate < 0:
+        post_lr = args.learning_rate / 10
+    else:
+        post_lr = args.post_learning_rate
+
     cleanup()
     if args.training_steps > 0:
         modules = find_all_linear_names(model)
@@ -606,7 +611,7 @@ if __name__ == "__main__":
             load_best_model_at_end=True,
             logging_steps=1,
             logging_strategy="steps",
-            learning_rate=args.learning_rate if len(args.lang_pairs) > 1 else args.post_learning_rate,
+            learning_rate=args.learning_rate if len(args.lang_pairs) > 1 else post_lr,
             fp16=False,
             bf16=False,
             weight_decay=args.weight_decay,
@@ -686,11 +691,6 @@ if __name__ == "__main__":
         epoch_batch_count = len(train_dataset) / (args.batch_size * args.gradient_accumulation_steps)
         warmup_steps = int(args.warmup_ratio * epoch_batch_count)
 
-        if args.post_learning_rate < 0:
-            post_lr = args.learning_rate / 10
-        else:
-            post_lr = args.post_learning_rate
-        
         #Hyperparamter
         training_arguments = SFTConfig(
             output_dir=POST_MODEL_SAVE_PATH,
