@@ -176,3 +176,81 @@ EXPERIMENT_NAME = "-".join([
 MODEL_SAVE_PATH = './checkpoints/{}'.format(EXPERIMENT_NAME)
 POST_MODEL_SAVE_PATH = './checkpoints/posttrain-{}'.format(EXPERIMENT_NAME)
 
+def dataset_for_nllb(tokenizer, lang_pairs=args.lang_pairs):
+    dataset = load_dataset("json", data_files={
+        "train": "./ted-multiling-filtered/train.json",
+        "test": "./ted-multiling-filtered/test.json",
+        "dev": "./ted-multiling-filtered/dev.json"
+    })
+
+    if 'pt' in dataset["train"].column_names:
+        dataset = dataset.remove_columns("pt")
+    dataset = dataset.rename_column("pt-br", "pt")
+
+    paired_sentences_datasets = []
+    main_lang_eval_size = -1
+
+    for lang_pair in lang_pairs:
+        lang1, lang2 = lang_pair.split("-")
+        name1, name2 = Language.from_part1(lang1).name, Language.from_part1(lang2).name
+
+        new_data = dataset.select_columns([lang1, lang2]) \
+                    .filter(lambda x: x[lang1] != "__NULL__" and x[lang2] != "__NULL__", num_proc=4) \
+                    .map(lambda x: {
+                        'lang1': lang1,
+                        'lang2': lang2,
+                        'name1': name1,
+                        'name2': name2,
+                        'sentence1': x[lang1],
+                        'sentence2': x[lang2]
+                    }, num_proc=4) \
+                    .remove_columns([lang1, lang2])
+
+        if lang_pair == args.main_lang_pair and args.limit_main_corpus > 0:
+            print(f"Reducing main language train corpus from {len(new_data["train"])} to {args.limit_main_corpus}.")
+            new_data["train"] = new_data["train"].shuffle().select(range(args.limit_main_corpus))
+
+        print(f"Length of {lang_pair} dataset:", len(new_data["train"]), len(new_data["dev"]), len(new_data["test"]))
+
+        # TODO: Fix this dirty plan and implement a problem Dataset class
+        # For now, we truncate OR expand all corpuses to the limit_train_corpus
+        if args.limit_train_corpus > 0:
+            if len(new_data["train"]) > args.limit_train_corpus:
+                new_data["train"] = new_data["train"].shuffle().select(range(args.limit_train_corpus))
+            elif len(new_data["train"]) < args.limit_train_corpus:
+                multiplier = int(np.ceil(args.limit_train_corpus / len(new_data["train"])))
+                new_data["train"] = datasets.concatenate_datasets([ new_data["train"] for k in range(multiplier) ])
+                new_data["train"] = new_data["train"].select(range(args.limit_train_corpus))
+
+        if lang_pair == args.main_lang_pair:
+            main_lang_eval_size = len(new_data["dev"])
+
+        paired_sentences_datasets.append(new_data)
+
+    if args.eval_all_langs:
+        if main_lang_eval_size <= 0: raise Exception("Something wrong with main_lang_eval_size.")
+        for d in paired_sentences_datasets:
+            d["dev"] = d["dev"].select(range(main_lang_eval_size))
+
+    lengths = [ len(i["train"]) for i in paired_sentences_datasets ]
+    multipliers = [ max(lengths) // i for i in lengths ]
+    leftovers = [ max(lengths) % i for i in lengths ]
+    to_concatenate = []
+
+    print("Multipliers for each dataset: ", list(zip(lang_pairs, multipliers)))
+
+    for idx, (a, b) in enumerate(zip(multipliers, leftovers)):
+        to_concatenate.extend([ paired_sentences_datasets[idx]["train"] ] * a)
+        
+        if b > 0:
+            t = to_concatenate[-1]
+            new_samples = t.shuffle().select(range(b))
+            to_concatenate[-1] = datasets.concatenate_datasets([t, new_samples])
+    
+    new_dataset = DatasetDict({
+        "train": datasets.concatenate_datasets(to_concatenate),
+        "test": datasets.concatenate_datasets([ i["test"] for i in paired_sentences_datasets ]),
+        "dev": datasets.concatenate_datasets([ i["dev"] for i in paired_sentences_datasets ])
+    })
+
+    return new_dataset.shuffle()
