@@ -176,6 +176,11 @@ EXPERIMENT_NAME = "-".join([
 MODEL_SAVE_PATH = './checkpoints/{}'.format(EXPERIMENT_NAME)
 POST_MODEL_SAVE_PATH = './checkpoints/posttrain-{}'.format(EXPERIMENT_NAME)
 
+def cleanup():
+    """Try to free GPU memory"""
+    gc.collect()
+    torch.cuda.empty_cache()
+
 def dataset_for_nllb(tokenizer, lang_pairs=args.lang_pairs):
     dataset = load_dataset("json", data_files={
         "train": "./ted-multiling-filtered/train.json",
@@ -254,3 +259,26 @@ def dataset_for_nllb(tokenizer, lang_pairs=args.lang_pairs):
     })
 
     return new_dataset.shuffle()
+
+def translate(
+    text, tokenizer, model, src_lang, tgt_lang, 
+    a=32, b=3, max_input_length=256, num_beams=3, **kwargs
+):
+    """Turn a text or a list of texts into a list of translations"""
+
+    tokenizer.src_lang = PART1_TO_FLORES[src_lang]
+    tokenizer.tgt_lang = PART1_TO_FLORES[tgt_lang]
+    inputs = tokenizer(
+        text, return_tensors='pt', padding=True, truncation=True, 
+        max_length=max_input_length
+    )
+
+    model.eval() # turn off training mode
+    result = model.generate(
+        **inputs.to(model.device),
+        forced_bos_token_id=tokenizer.convert_tokens_to_ids(PART1_TO_FLORES[tgt_lang]),
+        max_new_tokens=int(a + b * inputs.input_ids.shape[1]),
+        num_beams=num_beams, **kwargs
+    )
+    return tokenizer.batch_decode(result, skip_special_tokens=True)[0]
+
