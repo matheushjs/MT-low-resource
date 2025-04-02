@@ -282,3 +282,17 @@ def translate(
     )
     return tokenizer.batch_decode(result, skip_special_tokens=True)[0]
 
+def reset_non_embedding_weights(model):
+    random.seed(42)
+    for name, module in model.named_modules():
+        if any(x in name for x in ["embed", "shared", "lm_head"]):
+            #print(f"Skipping embedding-related layer: {name}")
+            continue
+        if hasattr(module, "reset_parameters"):
+            #print(f"Resetting: {name}")
+            if random.random() < args.reset_prob:
+                module.reset_parameters()
+        else:
+            #print(f"Skipping unresettable layer: {name}")
+            pass
+
