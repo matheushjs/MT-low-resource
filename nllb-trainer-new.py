@@ -325,3 +325,58 @@ def get_translations(dataset, tokenizer, model, limit_samples=-1, do_print=True)
 
     return translations
 
+def get_scores(translations, do_comet=False):
+    translations = [ i for i in translations ]
+    bleu_score  = None
+    chrf_score  = None
+    comet_score = None
+
+    bleu_calc = sacrebleu.BLEU()
+    chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
+
+    # We should filter empty sentences, or the package will give an error.
+    idxs = []
+    for idx, row in enumerate(translations):
+        if "" in row or " " in row:
+            idxs.append(idx)
+    # ALWAYS remove in inverted order :)
+    for i in idxs[::-1]:
+        print(f"Removing row {i}, with contents {translations[i]}")
+        translations.pop(i) # del translations[i]
+
+    try:
+        num_removed = len(idxs)
+        total = num_removed + len(translations)
+
+        print(f"Percentage of samples removed: {num_removed / total * 100:.2f}%")
+
+        bleu_score = bleu_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
+        bleu_score.score = bleu_score.score * (len(translations) / total)
+
+        chrf_score = chrf_calc.corpus_score([i[0] for i in translations], [[i[2] for i in translations]])
+        chrf_score.score = chrf_score.score * (len(translations) / total)
+
+        if do_comet:
+            data = []
+            for xyz in translations:
+                data.append({
+                    "src": xyz[1],
+                    "mt": xyz[2],
+                    "ref": xyz[0]
+                })
+
+            try:
+                model_path = download_model("Unbabel/wmt22-comet-da", local_files_only=True)
+            except:
+                model_path = download_model("Unbabel/wmt22-comet-da")
+            comet_model = load_from_checkpoint(model_path)
+
+            model_output = comet_model.predict(data, gpus=1, num_workers=0, progress_bar=False)
+            comet_score = model_output.system_score
+
+    except Exception as e:
+        print("Failed to calculate BLEU, ChrF or Comet scores.")
+        print(e)
+
+    return bleu_score, chrf_score, comet_score
+
