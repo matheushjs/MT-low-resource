@@ -296,3 +296,32 @@ def reset_non_embedding_weights(model):
             #print(f"Skipping unresettable layer: {name}")
             pass
 
+def get_translations(dataset, tokenizer, model, limit_samples=-1, do_print=True):
+    translations = []
+    try:
+        for idx, row in enumerate(dataset):
+            lang1 = row["lang1"]
+            lang2 = row["lang2"]
+            X_eng = row["sentence1"]
+            X_hye = row["sentence2"]
+            name1 = row["name1"]
+            name2 = row["name2"]
+            eng_to_hye = translate(X_eng, tokenizer, model, lang1, lang2)
+
+            translations.append((X_hye, X_eng, eng_to_hye))
+
+            if do_print and idx < 20:
+                print(f"{lang2} (target): ", X_hye)
+                print(f"{lang1} (source): ", X_eng)
+                print("Translated: ", eng_to_hye)
+                print("=============================")
+
+            if limit_samples > 0 and idx >= (limit_samples - 1):
+                print("Interrupting get_translations() due to 'limit_samples' argument.")
+                break
+
+    except KeyboardInterrupt:
+        print("Caught Ctrl+C or SIGINT. Interrupting testing.")
+
+    return translations
+
