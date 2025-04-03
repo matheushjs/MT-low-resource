@@ -380,3 +380,48 @@ def get_scores(translations, do_comet=False):
 
     return bleu_score, chrf_score, comet_score
 
+if __name__ == "__main__":
+    if args.load_existing != "":
+        checkpoint = args.load_existing
+    else:
+        checkpoint = "facebook/nllb-200-distilled-600M"
+
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint) #, padding_size="left")
+
+    # Set torch dtype and attention implementation
+    # NOTE: This might cause result differences between Euler and KIT clusters
+    if torch.cuda.get_device_capability()[0] >= 8:
+        torch_dtype = torch.bfloat16
+    else:
+        torch_dtype = torch.float16
+    print(f"Compute capability: {torch.cuda.get_device_capability()[0]}. Loading model with torch_dtype {torch_dtype}.")
+
+    # Load model
+    if args.training_steps > 0:
+        if args.train_from_scratch and args.reset_prob > 0:
+            print("Loading model for training with some layers reset.")
+            model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint)
+            reset_non_embedding_weights(model)
+        elif args.train_from_scratch and args.reset_prob <= 0:
+            print("Loading model for training from scratch.")
+            config = AutoConfig.from_pretrained(checkpoint)
+            model  = AutoModelForSeq2SeqLM.from_config(config)
+        else:
+            print("Loading model for full regular training.")
+            model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint)
+
+        if args.no_dropout:
+            model.config.activation_dropout = 0
+            model.config.attention_dropout = 0
+            model.config.dropout = 0
+            model.config.classifier_dropout = 0
+
+        model.to("cuda")
+    else:
+        print("Loading model in float16/bfloat16 precision.")
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            checkpoint,
+            torch_dtype=torch_dtype
+        )
+        model.to("cuda")
+
