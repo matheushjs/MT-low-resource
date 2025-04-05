@@ -450,3 +450,36 @@ if __name__ == "__main__":
 
     datasets = dataset_for_nllb(tokenizer, lang_pairs=args.lang_pairs)
 
+    # We have a potential problem of concurrent usage of the tokenizer, so let's just
+    # instantiate multiple of them
+    tokenizers = dict()
+    for lang_pair in args.lang_pairs:
+        lang1, lang2 = lang_pair.split("-")
+        newTok = copy.deepcopy(tokenizer)
+        newTok.src_lang = PART1_TO_FLORES[lang1]
+        newTok.tgt_lang = PART1_TO_FLORES[lang2]
+
+        if lang1 not in tokenizers:
+            tokenizers[lang1] = {lang2: newTok}
+        else:
+            tokenizers[lang1][lang2] = newTok
+
+    def _tokenize_fn(row):
+        myTokenizer = tokenizers[row["lang1"]][row["lang2"]]
+        model_inputs = myTokenizer(
+            row["sentence1"],
+            text_target=row["sentence2"],
+            truncation=True,
+            padding=False,
+            max_length=args.tok_max_length,
+        )
+        for k in row.keys():
+            model_inputs[k] = row[k]
+        return model_inputs
+
+    train_dataset      = datasets["train"] \
+                            .map(_tokenize_fn, num_proc=4)
+    post_train_dataset = train_dataset \
+                            .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2) \
+                            .shuffle()
+
