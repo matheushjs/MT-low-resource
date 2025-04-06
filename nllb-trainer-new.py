@@ -483,3 +483,30 @@ if __name__ == "__main__":
                             .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2) \
                             .shuffle()
 
+    if args.eval_all_langs:
+        full_dev_dataset = datasets["dev"].map(_tokenize_fn, num_proc=4)
+        dev_dataset  = full_dev_dataset
+        post_dev_dataset  = full_dev_dataset \
+                    .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+    else:
+        full_dev_dataset = datasets["dev"].map(_tokenize_fn, num_proc=4)
+        dev_dataset = full_dev_dataset \
+                    .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+        post_dev_dataset = dev_dataset
+    
+    full_test_dataset = datasets["test"].map(_tokenize_fn, num_proc=4)
+
+    test_dataset = full_test_dataset \
+                    .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] == main_lang2)
+    
+    if len(args.lang_pairs) > 1:
+        if main_lang1 == "en":
+            complement_test_dataset = full_test_dataset \
+                            .filter(lambda x: x["lang1"] == main_lang1 and x["lang2"] != main_lang2)
+        else:
+            complement_test_dataset = full_test_dataset \
+                            .filter(lambda x: x["lang1"] != main_lang1 and x["lang2"] == main_lang2)
+    else:
+        complement_test_dataset = None
+
+ 
