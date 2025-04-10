@@ -624,3 +624,23 @@ if __name__ == "__main__":
 
         wandb.finish()
 
+        for i in trainer.state.log_history:
+            if 'loss' in i:
+                losses.append(i["loss"])
+        # max_train_samples = len(dataset["train"])
+        # metrics["train_samples"] = len(dataset["train"])
+        # trainer.log_metrics("train", metrics)
+        # trainer.save_metrics("train", metrics)
+
+    if not args.skip_test and args.post_training_steps > 0:
+        model.config.use_cache = True
+
+        print("Beginning middle testing.")
+        middle_translations = get_translations(test_dataset, tokenizer, model, args.middle_limit_test_samples)
+
+        print("\nStarting to score the test dataset (middle testing).")
+        print(f"Number of sentences: {len(middle_translations)}")
+        test_scores = get_scores(middle_translations, do_comet=False)
+        print(test_scores[0])
+        print(test_scores[1])
+
