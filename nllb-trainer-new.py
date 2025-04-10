@@ -537,3 +537,80 @@ if __name__ == "__main__":
 
     print(f"Dataset sizes:\ntrain: {len(train_dataset)}\npost_train: {len(post_train_dataset)}\ndev: {len(dev_dataset)}\npost_dev: {len(post_dev_dataset)}\ntest: {len(test_dataset)}")
 
+    cleanup()
+    if args.training_steps > 0:
+        run = wandb.init(
+            entity="elfmathews-university-of-tsukuba",
+            project=EXPERIMENT_NAME, 
+            job_type="training", 
+            anonymous="allow"
+        )
+
+        # optimizer = AdamW(
+        #     [p for p in model.parameters() if p.requires_grad],
+        #     lr=args.learning_rate,
+        #     weight_decay=args.weight_decay
+        # )
+        # scheduler = get_constant_schedule_with_warmup(optimizer, args.warmup_ratio)
+
+        # Data collator for seq2seq
+        data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+
+        epoch_batch_count = len(train_dataset) / args.batch_size
+        warmup_steps = int(args.warmup_ratio * epoch_batch_count)
+
+        #Hyperparamter
+        training_arguments = Seq2SeqTrainingArguments(
+            output_dir=MODEL_SAVE_PATH,
+            overwrite_output_dir=True,
+            per_device_train_batch_size=args.batch_size,
+            per_device_eval_batch_size=args.batch_size,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            optim="adamw_torch",
+            num_train_epochs=args.epochs,
+            max_steps=args.training_steps,
+            eval_strategy="steps",
+            eval_steps=args.eval_steps,
+            eval_accumulation_steps=50,
+            save_strategy="steps",
+            save_steps=args.eval_steps,
+            save_total_limit=1,
+            load_best_model_at_end=True,
+            logging_steps=1,
+            logging_strategy="steps",
+            learning_rate=args.learning_rate,
+            fp16=True,
+            bf16=False,
+            weight_decay=args.weight_decay,
+            group_by_length=False,
+            #max_seq_length=args.tok_max_length,
+            max_grad_norm=args.max_grad_norm,
+            warmup_steps=warmup_steps,
+            lr_scheduler_type="constant_with_warmup",
+            dataloader_num_workers=4,
+            #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
+            report_to="wandb",
+            save_safetensors=False,
+            eval_on_start=True
+        )
+
+        # Setting sft parameters
+        trainer = Seq2SeqTrainer(
+            model=model,
+            train_dataset=train_dataset,
+            eval_dataset=dev_dataset,
+            #max_length=args.tok_max_length,
+            #dataset_text_field="text",
+            processing_class=tokenizer,
+            data_collator=data_collator,
+            args=training_arguments,
+            #optimizers=(optimizer, scheduler),
+            callbacks=[EarlyStoppingCallback(args.patience)]
+        )
+
+        model.config.use_cache = False
+        try:
+            train_result = trainer.train()
+        except KeyboardInterrupt:
+            print("Caught Ctrl+C or SIGINT. Interrupting pre-training and proceeding to middle testing.")
+
