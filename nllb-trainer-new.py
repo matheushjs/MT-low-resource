@@ -726,3 +726,18 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("Caught Ctrl+C or SIGINT. Interrupting post-training and proceeding to scoring.")
 
+        # Cleanup checkpoints
+        print("Cleaning up checkpoints.")
+        for filename in os.listdir(POST_MODEL_SAVE_PATH + "/"):
+            if filename.startswith("checkpoint-"):
+                dirname = os.path.join(POST_MODEL_SAVE_PATH, filename)
+                print(f"Removing: {dirname}")
+                shutil.rmtree(dirname)
+
+        wandb.finish()
+
+        # Available: {'loss': 1.8642, 'grad_norm': 1.6934727430343628, 'learning_rate': 2e-05, 'mean_token_accuracy': 0.5831297039985657, 'epoch': 0.0022222222222222222, 'step': 1}
+        for i in trainer.state.log_history:
+            if 'loss' in i:
+                post_losses.append(i["loss"])
+
