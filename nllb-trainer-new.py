@@ -790,3 +790,16 @@ if __name__ == "__main__":
             print("Full test dataset average chrF2++:", np.mean(all_chrf))
             print("Full test dataset average COMET:", np.mean(all_comet))
 
+        print("\nStarting to score the dev dataset (all langs).")
+        print(f"Number of sentences: {len(dev_translations)}")
+        dev_scores  = get_scores(dev_translations, do_comet=True)
+        print("(dev)", dev_scores[0])
+        print("(dev)", dev_scores[1])
+        print("COMET system score:", dev_scores[2])
+        all_bleu  += [dev_scores[0].score] * len(dev_translations)
+        all_chrf  += [dev_scores[1].score] * len(dev_translations)
+        all_comet += [dev_scores[2]] * len(dev_translations)
+        print("Full test & dev dataset average BLEU:", np.mean(all_bleu))
+        print("Full test & dev dataset average chrF2++:", np.mean(all_chrf))
+        print("Full test & dev dataset average COMET:", np.mean(all_comet))
+
