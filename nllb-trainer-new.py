@@ -741,3 +741,38 @@ if __name__ == "__main__":
             if 'loss' in i:
                 post_losses.append(i["loss"])
 
+    time_after_post_train = time.time()
+    time_after_test = -1 # Initialize here so it exists even if we skip_test
+    if not args.skip_test:
+        model.config.use_cache = True
+        
+        print("Beginning testing on the test dataset (LRL only).")
+        translations = get_translations(test_dataset, tokenizer, model, args.limit_test_samples)
+        
+        if complement_test_dataset != None:
+            print("Beginning testing on the complementary test dataset (all but the LRL).")
+            comp_translations = get_translations(complement_test_dataset, tokenizer, model, args.limit_test_samples)
+
+        print("Beginning testing on the dev dataset (all langs).")
+        dev_translations = get_translations(full_dev_dataset, tokenizer, model, args.limit_test_samples)
+
+        time_after_test = time.time()
+
+        # Since memory is a problem for us, we delete the MT model before scoring with Comet.
+        del model
+        cleanup()
+        
+        all_bleu  = []
+        all_chrf  = []
+        all_comet = []
+
+        print("\nStarting to score the test dataset (LRL only).")
+        print(f"Number of sentences: {len(translations)}")
+        test_scores = get_scores(translations, do_comet=True)
+        print(test_scores[0])
+        print(test_scores[1])
+        print("COMET system score:", test_scores[2])
+        all_bleu  += [test_scores[0].score] * len(translations)
+        all_chrf  += [test_scores[1].score] * len(translations)
+        all_comet += [test_scores[2]] * len(translations)
+
