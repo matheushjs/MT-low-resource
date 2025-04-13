@@ -776,3 +776,17 @@ if __name__ == "__main__":
         all_chrf  += [test_scores[1].score] * len(translations)
         all_comet += [test_scores[2]] * len(translations)
 
+        if complement_test_dataset != None:
+            print("\nStarting to score the complementary test dataset (all but the LRL).")
+            print(f"Number of sentences: {len(comp_translations)}")
+            comp_test_scores = get_scores(comp_translations, do_comet=True)
+            print("(comp_test)", comp_test_scores[0])
+            print("(comp_test)", comp_test_scores[1])
+            print("COMET system score:", comp_test_scores[2])
+            all_bleu  += [comp_test_scores[0].score] * len(comp_translations)
+            all_chrf  += [comp_test_scores[1].score] * len(comp_translations)
+            all_comet += [comp_test_scores[2]] * len(comp_translations)
+            print("Full test dataset average BLEU:", np.mean(all_bleu))
+            print("Full test dataset average chrF2++:", np.mean(all_chrf))
+            print("Full test dataset average COMET:", np.mean(all_comet))
+
