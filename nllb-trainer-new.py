@@ -803,3 +803,79 @@ if __name__ == "__main__":
         print("Full test & dev dataset average chrF2++:", np.mean(all_chrf))
         print("Full test & dev dataset average COMET:", np.mean(all_comet))
 
+    # Do not use args.training_steps or args.post_training_steps
+    if training_steps > 0 or post_training_steps > 0:
+        try:
+            print("Training epoch statistics:")
+            for lang_pair in args.lang_pairs:
+                lang1, lang2 = lang_pair.split("-")
+                epochs_finished = train_df[lang_pair]["epoch_count"]
+                remaining_percentage = len(train_df[lang_pair]["epoch_idx"]) / len(train_df[lang_pair][lang1])
+                print(f"\t{lang_pair} - {epochs_finished} Epochs finished, and {remaining_percentage} remaining.")
+        except:
+            print("Failed to print epoch statistics, probably because model != nllb.")
+
+    if len(losses) > 0:
+        plt.figure()
+        plt.scatter(np.arange(len(losses)), losses)
+        plt.xlabel("Training step")
+        plt.ylabel("Loss")
+        plt.yscale("log")
+        plt.savefig("loss-{}.png".format(EXPERIMENT_NAME))
+
+    if len(post_losses) > 0:
+        plt.figure()
+        plt.scatter(np.arange(len(post_losses)), post_losses)
+        plt.xlabel("Post-training step")
+        plt.ylabel("Loss")
+        plt.yscale("log")
+        plt.savefig("postloss-{}.png".format(EXPERIMENT_NAME))
+
+    today = dt.today()
+    homedir = os.environ['HOME']
+    resultsdir = "results-2025-{}-{}/".format(today.month, today.day)
+    resultsfile = "results-{}.pickle".format(EXPERIMENT_NAME)
+
+    Path(os.path.join(homedir, resultsdir)).mkdir(parents=True, exist_ok=True)
+
+    time_end = time.time()
+    elapsed = time_end - time_begin
+
+    # This is dirty, but I consider results to be way too important
+    #   to be lost due to non-existing variables
+    results = {}
+    try: results["losses"] = losses
+    except: pass
+
+    try: results["post_losses"] = post_losses
+    except: pass
+
+    try: results["translations"] = translations
+    except: pass
+
+    try: results["training_step_counter"] = training_step_counter
+    except: pass
+
+    try: results["post_training_step_counter"] = post_training_step_counter
+    except: pass
+
+    try: results["elapsed_time"] = elapsed
+    except: pass
+
+    try: results["time_to_train"] = time_after_train - time_begin
+    except: pass
+
+    try: results["time_to_post_train"] = time_after_post_train - time_after_train
+    except: pass
+
+    try: results["time_to_test"] = time_after_test - time_after_post_train
+    except: pass
+
+    try:
+        pkldump(results, os.path.join(homedir, resultsdir, resultsfile))
+    except:
+        file = f"./{EXPERIMENT_NAME}.out"
+        print(f"Something went wrong in saving results. Falling back to saving as string to {file}.\nYou should rename this file as soon as you can.")
+        
+        with open(file, "w") as fp:
+            fp.write(str(results))
