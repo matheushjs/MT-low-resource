@@ -14,3 +14,38 @@ python3 -u llama-trainer.py \\
     --lora-r 16 --lora-alpha 32 > output-llama-{expname}-$date.txt 2> error-llama-{expname}-$date.txt || true
 """
 
+#    --max-grad-norm 1.0 --weight-decay 0.0 --no-dropout \\
+
+#main_langs = "hy az ka be gl".split(" ")
+main_langs = "hy az ka be gl".split(" ")
+#supporting_langs = "cs ro ru hu tr hr ko es fr he ar ja".split(" ")
+supporting_langs = "cs ro ru hu tr hr ko".split(" ")
+experiment_name = "fullfromscratch9again"
+template = template_nllb
+
+# flp: format language pairs
+def flp(langs, engFirst):
+    if not isinstance(langs, list):
+        langs = [langs]
+    return ",".join([ "{}-{}".format("en", l) if engFirst else "{}-{}".format(l, "en") for l in langs ])
+
+for m in main_langs:
+    for engFirst in [False]:
+        print(template.strip().format(
+            langpairs=flp(m, engFirst),
+            mlangpairs=flp(m, engFirst),
+            expname=experiment_name,
+            post_tsteps=0
+        ))
+        print("")
+
+for m in main_langs:
+    for s in supporting_langs:
+        for engFirst in [False]:
+            print(template.strip().format(
+                langpairs=flp([m,s], engFirst),
+                mlangpairs=flp(m, engFirst),
+                expname=experiment_name,
+                post_tsteps=20000
+            ))
+            print("")
