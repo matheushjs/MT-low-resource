@@ -391,3 +391,27 @@ Full test dataset average BLEU: 32.107371152798876
 Full test dataset average chrF2++: 57.35300801279808
 Full test dataset average COMET: 0.8008705172112518
 """
+
+text = text.strip().split("\n\n")
+
+for block in text:
+    lines = block.split("\n")
+    
+    if len(lines[1]) > 5:
+        print(
+            lines[1],
+            lines[2].split(" ")[-1],
+            lines[3].split(" ")[-1],
+            lines[4].split(" ")[-1],
+            lines[5].split(" ")[-1],
+            lines[6].split(" ")[-1][:6],
+            sep="\t"
+        )
+    else:
+        print(
+            lines[1],
+            lines[2].split(" ")[-1],
+            lines[3].split(" ")[-1],
+            lines[4].split(" ")[-1][:6],
+            sep="\t"
+        )
