@@ -141,3 +141,24 @@ hy,hr,19.71
 hy,ko,19.18
 """
 
+def scatter_bleus(ax, dists, bleus, langs, c):
+    for d, b, l in zip(dists, bleus, langs):
+        md = np.max(dists) - np.min(dists)
+        mb = np.max(bleus) - np.min(bleus)
+        ax.text(d + 0.01*md, b + 0.01*mb, l)
+    ax.scatter(dists, bleus, c=c)
+
+data = pd.read_csv(StringIO(data), header=0)
+
+df_laser = pd.read_csv("laser-distances-reduced-full.csv", header=0, index_col=0)
+df_nllb = pd.read_csv("cltad-distances-reduced.csv", header=0, index_col=0)
+
+main = list(data["main"])
+lang = list(data["lang"])
+bleu = list([ float(i) for i in data["bleu"] ])
+
+idx = np.argwhere(np.array(bleu) != 0).ravel()
+main = [ main[i] for i in idx ]
+lang = [ lang[i] for i in idx ]
+bleu = [ bleu[i] for i in idx ]
+
