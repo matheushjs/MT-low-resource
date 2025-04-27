@@ -162,3 +162,31 @@ main = [ main[i] for i in idx ]
 lang = [ lang[i] for i in idx ]
 bleu = [ bleu[i] for i in idx ]
 
+l2vdists = []
+l2vbleus = []
+l2vlangs = []
+lambdas = np.array([0.03011268, 0., 0.61736057, 0., 0.4757546, 0.07808931, 0.001, 0.17031381, 0.03011268, 0., 0.001, 0.001, 0., 0., 0., 0., 0.001, 0.40010741, 0., 0.4006355, 0.40010603, 0.69080728, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0., 0., 0.58323313])
+for m, l, b in zip(main, lang, bleu):
+    if l == "hr":
+        continue
+    m_part3 = Language.from_part1(m).part3
+    l_part3 = Language.from_part1(l).part3
+    try:
+        l2vdists.append(l2v_distance(m,l, lambdas=lambdas))
+    except:
+        l2vdists.append(0)
+    l2vbleus.append(b)
+    l2vlangs.append(l)
+
+laserdists = []
+for m, l in zip(main, lang):
+    m_flores = PART1_TO_FLORES[m]
+    l_flores = PART1_TO_FLORES[l]
+    laserdists.append(df_laser[m_flores][l_flores])
+
+tokmatdists = []
+for m, l in zip(main, lang):
+    m_flores = PART1_TO_FLORES[m]
+    l_flores = PART1_TO_FLORES[l]
+    tokmatdists.append(float(np.log(df_nllb[m][l])))
+
