@@ -190,3 +190,16 @@ for m, l in zip(main, lang):
     l_flores = PART1_TO_FLORES[l]
     tokmatdists.append(float(np.log(df_nllb[m][l])))
 
+fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+axs = iter(axs.ravel())
+
+ax = next(axs)
+scatter_bleus(ax, l2vdists, l2vbleus, l2vlangs, cmap[0])
+
+ax = next(axs)
+scatter_bleus(ax, laserdists, bleu, lang, cmap[1])
+
+
+ax = next(axs)
+scatter_bleus(ax, tokmatdists, bleu, lang, cmap[2])
+
