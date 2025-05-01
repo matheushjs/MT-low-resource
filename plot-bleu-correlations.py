@@ -195,11 +195,17 @@ axs = iter(axs.ravel())
 
 ax = next(axs)
 scatter_bleus(ax, l2vdists, l2vbleus, l2vlangs, cmap[0])
+ax.set_xlabel("Lang2vec syntactic distances")
+ax.set_ylabel("BLEU")
 
 ax = next(axs)
 scatter_bleus(ax, laserdists, bleu, lang, cmap[1])
+ax.set_xlabel("LASER 3 distances")
 
+if TITLE == "":
+    TITLE = f"Main language: {main[0]}"
+ax.set_title(TITLE)
 
 ax = next(axs)
 scatter_bleus(ax, tokmatdists, bleu, lang, cmap[2])
-
+ax.set_xlabel("CLTAD distances")
