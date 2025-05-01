@@ -195,12 +195,22 @@ axs = iter(axs.ravel())
 
 ax = next(axs)
 scatter_bleus(ax, l2vdists, l2vbleus, l2vlangs, cmap[0])
+corr = np.corrcoef(l2vdists, l2vbleus)[0,1].round(3)
+#ax.set_title(f"Correlation: {corr}")
+#plt.text(0.03, 0.03, f"Correlation: {corr}", transform=ax.transAxes, weight="bold", alpha=0.8)
+ax.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
 ax.set_xlabel("Lang2vec syntactic distances")
 ax.set_ylabel("BLEU")
 
 ax = next(axs)
 scatter_bleus(ax, laserdists, bleu, lang, cmap[1])
+corr = np.corrcoef(laserdists, bleu)[0,1].round(3)
+#ax.set_title(f"Correlation: {corr}")
+#plt.text(0.03, 0.03, f"Correlation: {corr}", transform=ax.transAxes, weight="bold", alpha=0.8)
+ax.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
 ax.set_xlabel("LASER 3 distances")
+ax.set_title(TITLE, weight="bold")
+#ax.set_ylabel("BLEU")
 
 if TITLE == "":
     TITLE = f"Main language: {main[0]}"
@@ -208,4 +218,8 @@ ax.set_title(TITLE)
 
 ax = next(axs)
 scatter_bleus(ax, tokmatdists, bleu, lang, cmap[2])
+corr = np.corrcoef(tokmatdists, bleu)[0,1].round(3)
+#ax.set_title(f"Correlation: {corr}")
+ax.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
+#plt.text(0.03, 0.03, , weight="bold", alpha=0.8)
 ax.set_xlabel("CLTAD distances")
