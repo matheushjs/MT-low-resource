@@ -223,3 +223,11 @@ corr = np.corrcoef(tokmatdists, bleu)[0,1].round(3)
 ax.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
 #plt.text(0.03, 0.03, , weight="bold", alpha=0.8)
 ax.set_xlabel("CLTAD distances")
+#ax.set_ylabel("BLEU")
+
+#fig.set_tight_layout(True)
+
+plt.tight_layout()
+if FILENAME is not None:
+    plt.savefig(FILENAME, dpi=150)
+plt.show()
