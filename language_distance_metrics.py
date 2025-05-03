@@ -109,3 +109,6 @@ cltad_cached = pd.read_csv("cltad-distances-reduced.csv", header=0, index_col=0)
 def cltad_distance_cached(lang1, lang2):
     return cltad_cached.loc[lang1, lang2]
 
+df_laser = pd.read_csv("laser-distances-reduced-full.csv", header=0, index_col=0)
+def laser_distance(lang1, lang2):
+    return df_laser.loc[PART1_TO_FLORES[lang1], PART1_TO_FLORES[lang2]]
