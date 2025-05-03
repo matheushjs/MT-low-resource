@@ -30,3 +30,30 @@ FLORES_TO_PART1 = {'bam_Latn':'bm','vec_Latn':None,'prs_Arab':None,'tuk_Latn':'t
 PART3_TO_FLORES = { j: i for i,j in FLORES_TO_PART3.items() }
 PART1_TO_FLORES = { j: i for i,j in FLORES_TO_PART1.items() }
 
+# Compute cosine similarity
+def cosine_similarity(vec1, vec2):
+    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+
+# Requires data1 and data2 to be matrices where each row is a vector
+def editDistance2(data1, data2, shift_lambda=1, shift_exponent=1):
+    emb_dists = distance_matrix(data1, data2)
+    #print(emb_dists.shape)
+
+    A = data1
+    B = data2
+    shift_dists = np.array([ [ abs( ((len(A)-1)/(len(B)-1))*j - i)**shift_exponent for j in range(len(B)) ] for i in range(len(A)) ])
+
+    # Normalize distances
+    emb_dists = ( emb_dists - np.mean(emb_dists) ) / np.std(emb_dists)
+    shift_dists = ( shift_dists - np.mean(shift_dists) ) / np.std(shift_dists)
+
+    total_dists = emb_dists + shift_lambda*shift_dists
+
+    row_ind, col_ind = linear_sum_assignment(total_dists)
+
+    #print(row_ind, col_ind)
+
+    dist = total_dists[row_ind,col_ind].sum()
+
+    return stats.norm.cdf(dist, scale=2**2)
+
