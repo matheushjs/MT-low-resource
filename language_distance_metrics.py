@@ -57,3 +57,51 @@ def editDistance2(data1, data2, shift_lambda=1, shift_exponent=1):
 
     return stats.norm.cdf(dist, scale=2**2)
 
+checkpoint = "facebook/nllb-200-3.3B"
+tokenizer = None
+weights_array = np.load("nllb-embedding-layer.npy")
+def cltad_distance(lang1, lang2, shift_lambda=1, shift_exponent=1):
+    """Calculates CLTAD distance between lang1 and lang1 (2-letter language codes)"""
+    
+    global tokenizer
+    if tokenizer == None:
+        tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+
+    flores_lang1 = PART1_TO_FLORES[lang1]
+    flores_lang2 = PART1_TO_FLORES[lang2]
+    
+    file1 = f"flores200_dataset/dev/{flores_lang1}.dev"
+    file2 = f"flores200_dataset/dev/{flores_lang2}.dev"
+
+    with open(file1) as fp:
+        lines1 = fp.read().strip().split("\n")
+
+    with open(file2) as fp:
+        lines2 = fp.read().strip().split("\n")
+
+    lines1 = lines1[:1000]
+    lines2 = lines2[:1000]
+
+    dists = []
+    for l1, l2 in zip(lines1, lines2):
+        tokenizer.src_lang = flores_lang1
+        x = tokenizer(l1, return_tensors='pt', padding=False, truncation=False, max_length=None, add_special_tokens=False)
+
+        tokenizer.src_lang = flores_lang2
+        y = tokenizer(l2, return_tensors='pt', padding=False, truncation=False, max_length=None, add_special_tokens=False)
+
+        x_emb = []
+        for xx in x["input_ids"].numpy().ravel():
+            x_emb.append(weights_array[xx,:])
+        x_emb = np.array(x_emb)
+
+        y_emb = []
+        for yy in y["input_ids"].numpy().ravel():
+            y_emb.append(weights_array[yy,:])
+        y_emb = np.array(y_emb)
+
+        dists.append(editDistance2(x_emb, y_emb, shift_lambda=shift_lambda, shift_exponent=shift_exponent))
+
+    dist = np.mean(dists)
+    return dist
+
