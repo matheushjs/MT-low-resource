@@ -105,3 +105,7 @@ def cltad_distance(lang1, lang2, shift_lambda=1, shift_exponent=1):
     dist = np.mean(dists)
     return dist
 
+cltad_cached = pd.read_csv("cltad-distances-reduced.csv", header=0, index_col=0)
+def cltad_distance_cached(lang1, lang2):
+    return cltad_cached.loc[lang1, lang2]
+
