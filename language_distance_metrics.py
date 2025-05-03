@@ -112,3 +112,8 @@ def cltad_distance_cached(lang1, lang2):
 df_laser = pd.read_csv("laser-distances-reduced-full.csv", header=0, index_col=0)
 def laser_distance(lang1, lang2):
     return df_laser.loc[PART1_TO_FLORES[lang1], PART1_TO_FLORES[lang2]]
+
+df_eling = pd.read_csv("elinguistics-distances.csv", header=0, index_col=0)
+def elinguistics_distance(lang1, lang2):
+    return df_eling.loc[lang1, lang2]
+
