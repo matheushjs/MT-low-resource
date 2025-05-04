@@ -117,3 +117,19 @@ df_eling = pd.read_csv("elinguistics-distances.csv", header=0, index_col=0)
 def elinguistics_distance(lang1, lang2):
     return df_eling.loc[lang1, lang2]
 
+l2v_processed_features = None
+l2v_processed_featNames = None
+def l2v_distance(lang1, lang2, lambdas=np.array([1]*33), verbose=False):
+    global l2v_processed_features, l2v_processed_featNames
+
+    data = np.load("lang2vec/lang2vec/data/features.npz")
+    s_idx = np.argwhere([ i.startswith("S_") for i in data["feats"] ]).ravel()
+    featNames = data["feats"][s_idx]
+
+    lang_idx = lambda lang: list(data["langs"]).index(lang)
+    
+    # We consider only the sources: ETHNO, WALS and SSWL
+    sources_idx = [0, 1, 7]
+
+    get_features = lambda lang: data["data"][lang_idx(lang)][s_idx][:,sources_idx]
+
