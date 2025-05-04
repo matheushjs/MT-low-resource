@@ -133,3 +133,41 @@ def l2v_distance(lang1, lang2, lambdas=np.array([1]*33), verbose=False):
 
     get_features = lambda lang: data["data"][lang_idx(lang)][s_idx][:,sources_idx]
 
+    langs_considered = ["hy", "az", "ka", "cs", "ro", "ru",
+                        "hu", "tr", "ko", "fr", "es", "ar",
+                        "he", "ja"]
+    if l2v_processed_features == None:
+        l2v_processed_features = dict()
+        for lang in langs_considered:
+            feats = get_features(FLORES_TO_PART3[PART1_TO_FLORES[lang]])
+            newFeats = []
+            for i in range(feats.shape[0]):
+                line = feats[i,:]
+                line = line[line != -1]
+                if len(line) > 0:
+                    newFeats.append(np.mean(line))
+                else:
+                    newFeats.append(-np.inf)
+            l2v_processed_features[lang] = np.array(newFeats)
+    
+        nan_idxs = np.array([False] * len(featNames))
+        for k in l2v_processed_features.keys():
+            print(k, l2v_processed_features[k])
+            nan_idxs = nan_idxs | np.array(l2v_processed_features[k] < 0)
+
+        print(len(featNames))
+        l2v_processed_featNames = featNames[np.invert(nan_idxs)]
+        print(len(featNames) - sum(nan_idxs))
+        print(featNames[np.invert(nan_idxs)])
+
+        for k in l2v_processed_features.keys():
+            l2v_processed_features[k] = l2v_processed_features[k][np.invert(nan_idxs)]
+        print(l2v_processed_features)
+
+    if verbose:
+        print("Lambdas used:")
+        for feat, lamb in zip(l2v_processed_featNames, lambdas):
+            print(f"{feat}: {lamb:.4f}")
+
+    return np.mean(lambdas*np.abs(l2v_processed_features[lang1] - l2v_processed_features[lang2]))
+
