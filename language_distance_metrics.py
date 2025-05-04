@@ -152,17 +152,17 @@ def l2v_distance(lang1, lang2, lambdas=np.array([1]*33), verbose=False):
     
         nan_idxs = np.array([False] * len(featNames))
         for k in l2v_processed_features.keys():
-            print(k, l2v_processed_features[k])
+            #print(k, l2v_processed_features[k])
             nan_idxs = nan_idxs | np.array(l2v_processed_features[k] < 0)
 
-        print(len(featNames))
+        # print(len(featNames))
         l2v_processed_featNames = featNames[np.invert(nan_idxs)]
-        print(len(featNames) - sum(nan_idxs))
-        print(featNames[np.invert(nan_idxs)])
+        #print(len(featNames) - sum(nan_idxs))
+        #print(featNames[np.invert(nan_idxs)])
 
         for k in l2v_processed_features.keys():
             l2v_processed_features[k] = l2v_processed_features[k][np.invert(nan_idxs)]
-        print(l2v_processed_features)
+        #print(l2v_processed_features)
 
     if verbose:
         print("Lambdas used:")
