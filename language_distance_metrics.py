@@ -214,3 +214,14 @@ if __name__ == "__main__":
             f"best = {[ supp[i] for i in idx[:5] ]}, ",
             "dists = " + ",".join([ "{:.3f}".format(dists[i]) for i in idx[:5] ]))
 
+    print("\nL2v genetic distances")
+    for m in main:
+        dists = []
+        for s in supp:
+            dists.append(l2v.genetic_distance(FLORES_TO_PART3[PART1_TO_FLORES[m]], FLORES_TO_PART3[PART1_TO_FLORES[s]]))
+
+        idx = np.argsort(dists).ravel()
+        print(f"Main = {m}, ",
+            f"best = {[ supp[i] for i in idx[:5] ]}, ",
+            "dists = " + ",".join([ "{:.3f}".format(dists[i]) for i in idx[:5] ]))
+        
