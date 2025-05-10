@@ -198,3 +198,19 @@ if __name__ == "__main__":
         print(f"Main = {m}, ",
             f"best = {[ supp[i] for i in idx[:5] ]}, ",
             "dists = " + ",".join([ "{:.3f}".format(dists[i]) for i in idx[:5] ]))
+
+    print("\nL2v custom syntax distances")
+    lambdas = np.array([0.03011268, 0., 0.61736057, 0., 0.4757546, 0.07808931, 0.001, 0.17031381, 0.03011268, 0., 0.001, 0.001, 0., 0., 0., 0., 0.001, 0.40010741, 0., 0.4006355, 0.40010603, 0.69080728, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0., 0., 0.58323313])
+    for m in main:
+        dists = []
+        for s in supp:
+            try:
+                dists.append(l2v_distance(m, s, lambdas=lambdas))
+            except:
+                dists.append(10)
+        
+        idx = np.argsort(dists).ravel()
+        print(f"Main = {m}, ",
+            f"best = {[ supp[i] for i in idx[:5] ]}, ",
+            "dists = " + ",".join([ "{:.3f}".format(dists[i]) for i in idx[:5] ]))
+
