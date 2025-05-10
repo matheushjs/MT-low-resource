@@ -171,3 +171,20 @@ def l2v_distance(lang1, lang2, lambdas=np.array([1]*33), verbose=False):
 
     return np.mean(lambdas*np.abs(l2v_processed_features[lang1] - l2v_processed_features[lang2]))
 
+if __name__ == "__main__":
+    # print(cltad_distance("hy", "cs"))
+
+    main = ["hy", "az", "ka", "be", "gl"]
+    supp = "cs ro ru hu tr hr ko es fr he ar ja".split(" ")
+
+    print("CLTAD distances")
+    for m in main:
+        dists = []
+        for s in supp:
+            dists.append(np.log(cltad_distance_cached(m, s)))
+        
+        idx = np.argsort(dists).ravel()
+        print(f"Main = {m}, ",
+            f"best = {[ supp[i] for i in idx[:5] ]}, ",
+            "dists = " + ",".join([ "{:.1f}".format(dists[i]) for i in idx[:5] ]))
+
