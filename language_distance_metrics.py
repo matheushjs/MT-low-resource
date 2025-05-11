@@ -225,3 +225,13 @@ if __name__ == "__main__":
             f"best = {[ supp[i] for i in idx[:5] ]}, ",
             "dists = " + ",".join([ "{:.3f}".format(dists[i]) for i in idx[:5] ]))
         
+    print("\nElinguistics genetic distances")
+    for m in main:
+        dists = []
+        for s in supp:
+            dists.append(elinguistics_distance(m, s))
+
+        idx = np.argsort(dists).ravel()
+        print(f"Main = {m}, ",
+            f"best = {[ supp[i] for i in idx[:5] ]}, ",
+            "dists = " + ",".join([ "{:.3f}".format(dists[i]) for i in idx[:5] ]))
