@@ -110,3 +110,27 @@ gl,ko,14.19
 """
 ]
 
+def calculate_correlation(args, plot=False):
+    shift_lambda, shift_exponent = args[0], args[1]
+
+    info_for_plot = []
+
+    correlations = []
+    mses = []
+    for score in allScores:
+        lines = [ i.strip().split(",") for i in score.strip().split("\n") ]
+
+        bleus = []
+        dists = []
+        langs = []
+
+        for line in lines:
+            bleus.append(float(line[-1]))
+            dists.append(cltad_distance(line[0], line[1], shift_lambda=shift_lambda, shift_exponent=shift_exponent))
+            langs.append(line[1])
+
+        if any(np.array(dists) < 1e-100):
+            correlations.append(0)
+        else:
+            correlations.append(np.corrcoef(bleus, np.log(dists))[0,1])
+            
