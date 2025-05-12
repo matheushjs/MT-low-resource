@@ -133,4 +133,28 @@ def calculate_correlation(args, plot=False):
             correlations.append(0)
         else:
             correlations.append(np.corrcoef(bleus, np.log(dists))[0,1])
+            reg = LinearRegression().fit(np.log(dists).reshape(-1,1), bleus)
+            mse = np.mean((reg.predict(np.log(dists).reshape(-1,1)) - bleus)**2)
+            mses.append(mse)
+            if plot:
+                sns.set()
+                for d, b, l in zip(np.log(dists), bleus, langs):
+                    md = np.max(dists) - np.min(dists)
+                    mb = np.max(bleus) - np.min(bleus)
+                    plt.text(d + 0.01*md, b + 0.01*mb, l)
+                plt.scatter(dists, bleus)
+                corr = correlations[-1]
+                plt.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
+                plt.title(f"Main language: {lines[0][0]}")
+                plt.xlabel("CLTAD distances")
+                plt.ylabel("BLEU")
+                plt.tight_layout()
+                plt.show()
             
+        info_for_plot.append([bleus, np.log(dists), lines[0][0]])
+        #print(f"Correlation found for language {lines[0][0]}: {correlations[-1]}")
+
+    print(f"{args[0]:.2f}-{args[1]:.2f}: Average correlation and MSE: {np.mean(correlations)}, {np.mean(mse)}")
+    
+    return np.mean(correlations), np.mean(mse), info_for_plot
+
