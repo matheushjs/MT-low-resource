@@ -158,3 +158,31 @@ def calculate_correlation(args, plot=False):
     
     return np.mean(correlations), np.mean(mse), info_for_plot
 
+def calculate_correlation2(lambdas=np.array([1]*33), plot=False):
+    correlations = []
+    for score in allScores:
+        lines = [ i.strip().split(",") for i in score.strip().split("\n") ]
+        if lines[0][0] in ['be', 'gl']:
+            continue
+
+        bleus = []
+        dists = []
+        langs = []
+
+        for line in lines:
+            if line[1] == 'hr':
+                continue
+            bleus.append(float(line[-1]))
+            dists.append(l2v_distance(line[0], line[1], lambdas=lambdas))
+            langs.append(line[1])
+
+        if any(np.array(dists) < 1e-100):
+            correlations.append(0)
+        else:
+            correlations.append(np.corrcoef(bleus, dists)[0,1])
+
+
+    print(f"Average correlation: {np.mean(correlations)}")
+    
+    return np.mean(correlations)
+
