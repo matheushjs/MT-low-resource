@@ -199,3 +199,19 @@ def calculate_correlation2(lambdas=np.array([1]*33), plot=False):
     
     return np.mean(correlations)
 
+
+allArgs = []
+for shift_lambda in [1/3, 1/2, 1/1.5, 1/1.2, 1, 1.2, 1.5, 2, 3]:
+    for shift_exponent in [1/3, 1/2, 1/1.5, 1/1.2, 1, 1.2, 1.5, 2, 3]:
+        allArgs.append([shift_lambda, shift_exponent])
+
+if __name__ == "__main__":
+    with mp.Pool(8) as p:
+        correlations = p.map(calculate_correlation, allArgs, chunksize=1)
+
+    # correlations = [ calculate_correlation(arg, plot=False) for arg in allArgs ]
+
+    for args, corr in zip(allArgs, correlations):
+        print(f"lambda = {args[0]:.3f}\texponent = {args[1]:.3f}\tavg. correlation = {corr[0]}\tMSE = {corr[1]}")
+
+    pkldump({'args': allArgs, 'corr': correlations}, "optimize-metric-results.pickle")
