@@ -199,6 +199,14 @@ def calculate_correlation2(lambdas=np.array([1]*33), plot=False):
     
     return np.mean(correlations)
 
+# if __name__ == "__main__":
+#     retval = scipy.optimize.minimize(calculate_correlation2, np.array([0.001]*33), bounds=[(0, 1)]*33)
+
+#     print("Lambdas:", retval.x)
+#     print("Average BLEU x distance correlation:", retval.fun)
+
+#     l2v_distance("hy", "ru", lambdas=retval.x, verbose=True)
+
 
 allArgs = []
 for shift_lambda in [1/3, 1/2, 1/1.5, 1/1.2, 1, 1.2, 1.5, 2, 3]:
