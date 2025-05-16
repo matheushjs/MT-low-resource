@@ -180,7 +180,20 @@ def calculate_correlation2(lambdas=np.array([1]*33), plot=False):
             correlations.append(0)
         else:
             correlations.append(np.corrcoef(bleus, dists)[0,1])
-
+            if plot:
+                sns.set()
+                for d, b, l in zip(dists, bleus, langs):
+                    md = np.max(dists) - np.min(dists)
+                    mb = np.max(bleus) - np.min(bleus)
+                    plt.text(d + 0.01*md, b + 0.01*mb, l)
+                plt.scatter(dists, bleus)
+                corr = correlations[-1]
+                plt.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
+                plt.title(f"Main language: {lines[0][0]}")
+                plt.xlabel("Lang2vec syntactic distances")
+                plt.ylabel("BLEU")
+                plt.tight_layout()
+                plt.show()
 
     print(f"Average correlation: {np.mean(correlations)}")
     
