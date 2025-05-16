@@ -207,6 +207,10 @@ def calculate_correlation2(lambdas=np.array([1]*33), plot=False):
 
 #     l2v_distance("hy", "ru", lambdas=retval.x, verbose=True)
 
+# if __name__ == "__main__":
+#     lambdas = np.array([0.03011268, 0., 0.61736057, 0., 0.4757546, 0.07808931, 0.001, 0.17031381, 0.03011268, 0., 0.001, 0.001, 0., 0., 0., 0., 0.001, 0.40010741, 0., 0.4006355, 0.40010603, 0.69080728, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0., 0., 0.58323313])
+#     calculate_correlation2(lambdas=lambdas, plot=True)
+
 
 allArgs = []
 for shift_lambda in [1/3, 1/2, 1/1.5, 1/1.2, 1, 1.2, 1.5, 2, 3]:
