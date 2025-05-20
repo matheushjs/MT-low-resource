@@ -148,3 +148,33 @@ lambda = 10.000	exponent = 2.000	avg. correlation = -0.1902971280260975
 lambda = 10.000	exponent = 3.000	avg. correlation = -0.4128708185494765
 """
 
+data = [ [ float(j.split(" ")[-1]) for j in i.split("\t") ] for i in  text.strip().split("\n") ]
+
+#data = [ [ float(j) for j in i.split(" ") ] for i in open("output.txt").read().strip().split("\n") ]
+
+mat = np.array(data)[:,-1].reshape(-1, 9)
+
+xticklabs = "1/3, 1/2, 1/1.5, 1/1.2, 1, 1.2, 1.5, 2, 3".split(", ")
+yticklabs = "1/3, 1/2, 1/1.5, 1/1.2, 1, 1.2, 1.5, 2, 3, 3.5, 4, 4.5, 5, 6, 7.5, 10".split(", ")
+
+mat = mat[::-1,:]
+yticklabs = yticklabs[::-1]
+
+plt.imshow(mat)
+cbar = plt.colorbar()
+#cbar.set_label("Correlation", rotation=270)
+plt.xlabel("Exponent ($\\tau$)")
+plt.ylabel("Lambda ($\\lambda$)")
+plt.xticks(ticks=list(range(len(xticklabs))), labels=xticklabs)
+plt.yticks(ticks=list(range(len(yticklabs))), labels=yticklabs)
+plt.tight_layout()
+
+filename = "heatmap-cltad-params.png"
+try:
+    open(filename)
+    print("File exists. Will not save.")
+except:
+    print(f"Saving plot to {filename}.")
+    plt.savefig(filename, dpi=150)
+
+plt.show()
