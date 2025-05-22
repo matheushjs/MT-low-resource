@@ -41,15 +41,6 @@ for lang in langs:
 	with open(file2) as fp:
 		lines2 = fp.read().strip().split("\n")
 
-	file1 = f"flores200_dataset/devtest/{NLLB_LANG_CODES[lang]}.devtest"
-	file2 = f"flores200_dataset/devtest/hye_Armn.devtest"
-
-	with open(file1) as fp:
-		lines1.extend(fp.read().strip().split("\n"))
-
-	with open(file2) as fp:
-		lines2.extend(fp.read().strip().split("\n"))
-
 	try:
 		enc1 = LaserEncoderPipeline(lang=NLLB_LANG_CODES[lang])
 		enc2 = LaserEncoderPipeline(lang="hye_Armn")
@@ -65,4 +56,4 @@ for lang in langs:
 		sim = cosine_similarity(emb1[i,:], emb2[i,:])
 		sims.append(sim)
 
-	print(f"Distance to {lang}:", 1 - np.mean(sims), f"({len(sims)} iterations)")
+	print(f"Distance for {pair}:", 1 - np.mean(sims), f"({len(sims)} iterations)")
