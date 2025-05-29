@@ -39,3 +39,20 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_use_double_quant=True,
 )
 
+# Load model
+model = AutoModelForCausalLM.from_pretrained(
+    base_model,
+    quantization_config=bnb_config,
+    device_map="auto",
+    attn_implementation=attn_implementation,
+    use_cache=False
+)
+
+# Load tokenizer
+tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
+
+#Importing the dataset
+dataset = load_dataset(dataset_name, split="train")
+
+dataset = dataset.shuffle(seed=65).select(range(1000)) # Only use 1000 samples for quick demo
+
