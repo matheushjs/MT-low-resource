@@ -85,3 +85,16 @@ def find_all_linear_names(model):
 
 modules = find_all_linear_names(model)
 
+# LoRA config
+peft_config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM",
+    target_modules=modules
+)
+tokenizer.chat_template = None
+model, tokenizer = setup_chat_format(model, tokenizer)
+model = get_peft_model(model, peft_config)
+
