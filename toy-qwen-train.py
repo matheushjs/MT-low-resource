@@ -143,3 +143,23 @@ metrics["train_samples"] = len(dataset["train"])
 trainer.log_metrics("train", metrics)
 trainer.save_metrics("train", metrics)
 
+#metrics = trainer.evaluate()
+#max_val_samples = len(small_eval_dataset)
+#metrics["eval_samples"] = min(max_val_samples, len(small_eval_dataset))
+#trainer.log_metrics("eval", metrics)
+#trainer.save_metrics("eval", metrics)
+
+messages = [{"role": "system", "content": instruction},
+    {"role": "user", "content": "I bought the same item twice, cancel order {{Order Number}}"}]
+
+prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    
+inputs = tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
+
+outputs = model.generate(**inputs, max_new_tokens=150, num_return_sequences=1)
+
+text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+print(text.split("assistant")[1])
+
+trainer.model.save_pretrained(new_model)
