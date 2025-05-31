@@ -98,3 +98,42 @@ tokenizer.chat_template = None
 model, tokenizer = setup_chat_format(model, tokenizer)
 model = get_peft_model(model, peft_config)
 
+#Hyperparamter
+training_arguments = SFTConfig(
+    output_dir=new_model,
+    per_device_train_batch_size=1,
+    per_device_eval_batch_size=1,
+    gradient_accumulation_steps=2,
+    optim="paged_adamw_32bit",
+    num_train_epochs=1,
+    eval_strategy="steps",
+    eval_steps=0.2,
+    logging_steps=1,
+    warmup_steps=10,
+    logging_strategy="steps",
+    learning_rate=2e-4,
+    fp16=False,
+    bf16=False,
+    group_by_length=True,
+    max_seq_length=512,
+    dataset_text_field="text", # This argument was on Trainer
+    packing= False, # This argument was on Trainer
+    #max_length=512, # Idk what's going on. This is the latest version of TRL but it doesn't seem like it.
+    #report_to="wandb"
+)
+
+dataset = dataset.train_test_split(0.1)
+
+# Setting sft parameters
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=dataset["train"],
+    eval_dataset=dataset["test"],
+    peft_config=peft_config,
+    #max_seq_length=512,
+    #dataset_text_field="text",
+    processing_class=tokenizer,
+    args=training_arguments
+)
+
+train_result = trainer.train()
