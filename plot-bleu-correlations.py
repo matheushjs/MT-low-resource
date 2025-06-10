@@ -5,7 +5,7 @@ import seaborn as sns
 from iso639 import Language
 from lang2vec import lang2vec as l2v
 from io import StringIO
-from language_distance_metrics import cltad_distance, l2v_distance
+from language_distance_metrics import cltad_distance, l2v_distance, elinguistics_distance
 
 sns.set()
 cmap = sns.color_palette("Set2")
@@ -18,6 +18,16 @@ PART1_TO_FLORES = { j: i for i,j in FLORES_TO_PART1.items() }
 TITLE = "" # "Llama 3.2 3B $\\cdot$ Az $\\rightarrow$ En"
 FILENAME = None #"llama-bleu-correlation-az-en.png"
 data = """main,lang,bleu
+gl,cs,36.01
+gl,hr,33.61
+gl,hu,34.74
+gl,ko,33.12
+gl,ro,34.85
+gl,ru,34.84
+gl,tr,34.72
+"""
+
+"""main,lang,bleu
 ka,cs,13.03
 ka,hr,13.33
 ka,hu,13.85
@@ -190,7 +200,14 @@ for m, l in zip(main, lang):
     l_flores = PART1_TO_FLORES[l]
     tokmatdists.append(float(np.log(df_nllb[m][l])))
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+elingdists = []
+for m, l in zip(main, lang):
+    m_flores = PART1_TO_FLORES[m]
+    l_flores = PART1_TO_FLORES[l]
+    elingdists.append(elinguistics_distance(m, l))
+
+
+fig, axs = plt.subplots(1, 4, figsize=(20, 5))
 axs = iter(axs.ravel())
 
 ax = next(axs)
@@ -223,6 +240,15 @@ corr = np.corrcoef(tokmatdists, bleu)[0,1].round(3)
 ax.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
 #plt.text(0.03, 0.03, , weight="bold", alpha=0.8)
 ax.set_xlabel("CLTAD distances")
+#ax.set_ylabel("BLEU")
+
+ax = next(axs)
+scatter_bleus(ax, elingdists, bleu, lang, cmap[3])
+corr = np.corrcoef(elingdists, bleu)[0,1].round(3)
+#ax.set_title(f"Correlation: {corr}")
+#plt.text(0.03, 0.03, f"Correlation: {corr}", transform=ax.transAxes, weight="bold", alpha=0.8)
+ax.legend([], title=f"Correlation: {corr}", framealpha=0, markerscale=0, title_fontproperties={"weight": "bold"})
+ax.set_xlabel("e-Linguistics distances")
 #ax.set_ylabel("BLEU")
 
 #fig.set_tight_layout(True)
