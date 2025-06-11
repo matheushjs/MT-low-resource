@@ -136,6 +136,12 @@ parser.add_argument("--no-dropout",
 parser.add_argument("--eval-all-langs",
         help="Should we evaluate on all languages during pre-training?",
         action='store_true')
+parser.add_argument("--do-dev-test",
+        help="Should we get metrics on the dev dataset?",
+        action='store_true')
+parser.add_argument("--do-complementary-test",
+        help="Should we get metrics on the complementary test dataset?" ,
+        action='store_true')
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
 args = parser.parse_args()
 
@@ -776,7 +782,7 @@ if __name__ == "__main__":
         all_chrf  += [test_scores[1].score] * len(translations)
         all_comet += [test_scores[2]] * len(translations)
 
-        if complement_test_dataset != None:
+        if args.do_complementary_test and complement_test_dataset != None:
             print("\nStarting to score the complementary test dataset (all but the LRL).")
             print(f"Number of sentences: {len(comp_translations)}")
             comp_test_scores = get_scores(comp_translations, do_comet=True)
@@ -790,18 +796,19 @@ if __name__ == "__main__":
             print("Full test dataset average chrF2++:", np.mean(all_chrf))
             print("Full test dataset average COMET:", np.mean(all_comet))
 
-        print("\nStarting to score the dev dataset (all langs).")
-        print(f"Number of sentences: {len(dev_translations)}")
-        dev_scores  = get_scores(dev_translations, do_comet=True)
-        print("(dev)", dev_scores[0])
-        print("(dev)", dev_scores[1])
-        print("COMET system score:", dev_scores[2])
-        all_bleu  += [dev_scores[0].score] * len(dev_translations)
-        all_chrf  += [dev_scores[1].score] * len(dev_translations)
-        all_comet += [dev_scores[2]] * len(dev_translations)
-        print("Full test & dev dataset average BLEU:", np.mean(all_bleu))
-        print("Full test & dev dataset average chrF2++:", np.mean(all_chrf))
-        print("Full test & dev dataset average COMET:", np.mean(all_comet))
+        if args.do_dev_test:
+            print("\nStarting to score the dev dataset (all langs).")
+            print(f"Number of sentences: {len(dev_translations)}")
+            dev_scores  = get_scores(dev_translations, do_comet=True)
+            print("(dev)", dev_scores[0])
+            print("(dev)", dev_scores[1])
+            print("COMET system score:", dev_scores[2])
+            all_bleu  += [dev_scores[0].score] * len(dev_translations)
+            all_chrf  += [dev_scores[1].score] * len(dev_translations)
+            all_comet += [dev_scores[2]] * len(dev_translations)
+            print("Full test & dev dataset average BLEU:", np.mean(all_bleu))
+            print("Full test & dev dataset average chrF2++:", np.mean(all_chrf))
+            print("Full test & dev dataset average COMET:", np.mean(all_comet))
 
     # Do not use args.training_steps or args.post_training_steps
     if training_steps > 0 or post_training_steps > 0:
