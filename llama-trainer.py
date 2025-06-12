@@ -147,6 +147,9 @@ parser.add_argument("--lora-dropout",
 parser.add_argument("--eval-all-langs",
         help="Should we evaluate on all languages during pre-training?",
         action='store_true')
+parser.add_argument("--do-complementary-test",
+        help="Should we get metrics on the complementary test dataset?" ,
+        action='store_true')
 
 #args = parser.parse_args(["--lang-pairs", "en-ko,en-hy"])
 args = parser.parse_args()
@@ -799,7 +802,7 @@ if __name__ == "__main__":
         all_chrf  += [test_scores[1].score] * len(translations)
         all_comet += [test_scores[2]] * len(translations)
 
-        if complement_test_dataset != None:
+        if args.do_complementary_test and complement_test_dataset != None:
             print("\nStarting to score the complementary test dataset (all but the LRL).")
             print(f"Number of sentences: {len(comp_translations)}")
             comp_test_scores = get_scores(comp_translations, do_comet=True)
