@@ -387,6 +387,8 @@ def get_scores(translations, do_comet=False):
     return bleu_score, chrf_score, comet_score
 
 if __name__ == "__main__":
+    timer_global = dt.today()
+
     if args.load_existing != "":
         checkpoint = args.load_existing
     else:
@@ -454,6 +456,7 @@ if __name__ == "__main__":
     post_training_step_counter = 0
     time_begin = time.time()
 
+    timer_dataset_preparation = dt.today()
     datasets = dataset_for_nllb(tokenizer, lang_pairs=args.lang_pairs)
 
     # We have a potential problem of concurrent usage of the tokenizer, so let's just
@@ -543,6 +546,8 @@ if __name__ == "__main__":
 
     print(f"Dataset sizes:\ntrain: {len(train_dataset)}\npost_train: {len(post_train_dataset)}\ndev: {len(dev_dataset)}\npost_dev: {len(post_dev_dataset)}\ntest: {len(test_dataset)}")
 
+    print("Timer (dataset preparation):", dt.today() - timer_dataset_preparation)
+
     cleanup()
     if args.training_steps > 0:
         run = wandb.init(
@@ -615,10 +620,12 @@ if __name__ == "__main__":
         )
 
         model.config.use_cache = False
+        timer_pretraining = dt.today()
         try:
             train_result = trainer.train()
         except KeyboardInterrupt:
             print("Caught Ctrl+C or SIGINT. Interrupting pre-training and proceeding to middle testing.")
+        print("Timer (pre-training):", dt.today() - timer_pretraining)
 
         # Cleanup checkpoints
         print("Cleaning up checkpoints.")
@@ -640,6 +647,7 @@ if __name__ == "__main__":
 
     if not args.skip_test and args.post_training_steps > 0:
         model.config.use_cache = True
+        timer_middle_testing = dt.today()
 
         print("Beginning middle testing.")
         middle_translations = get_translations(test_dataset, tokenizer, model, args.middle_limit_test_samples)
@@ -649,6 +657,7 @@ if __name__ == "__main__":
         test_scores = get_scores(middle_translations, do_comet=False)
         print(test_scores[0])
         print(test_scores[1])
+        print("Timer (middle testing):", dt.today() - timer_middle_testing)
 
     time_after_train = time.time()
 
@@ -727,10 +736,12 @@ if __name__ == "__main__":
         )
 
         model.config.use_cache = False
+        timer_post_training = dt.today()
         try:
             post_train_result = trainer.train()
         except KeyboardInterrupt:
             print("Caught Ctrl+C or SIGINT. Interrupting post-training and proceeding to scoring.")
+        print("Timer (post-training):", dt.today() - timer_post_training)
 
         # Cleanup checkpoints
         print("Cleaning up checkpoints.")
@@ -751,7 +762,8 @@ if __name__ == "__main__":
     time_after_test = -1 # Initialize here so it exists even if we skip_test
     if not args.skip_test:
         model.config.use_cache = True
-        
+        timer_post_testing = dt.today()
+
         print("Beginning testing on the test dataset (LRL only).")
         translations = get_translations(test_dataset, tokenizer, model, args.limit_test_samples)
         
@@ -781,8 +793,10 @@ if __name__ == "__main__":
         all_bleu  += [test_scores[0].score] * len(translations)
         all_chrf  += [test_scores[1].score] * len(translations)
         all_comet += [test_scores[2]] * len(translations)
+        print("Timer (post testing):", dt.today() - timer_post_testing)
 
         if args.do_complementary_test and complement_test_dataset != None:
+            timer_comp_testing = dt.today()
             print("\nStarting to score the complementary test dataset (all but the LRL).")
             print(f"Number of sentences: {len(comp_translations)}")
             comp_test_scores = get_scores(comp_translations, do_comet=True)
@@ -795,8 +809,10 @@ if __name__ == "__main__":
             print("Full test dataset average BLEU:", np.mean(all_bleu))
             print("Full test dataset average chrF2++:", np.mean(all_chrf))
             print("Full test dataset average COMET:", np.mean(all_comet))
+            print("Timer (complementary testing):", dt.today() - timer_comp_testing)
 
         if args.do_dev_test:
+            timer_dev_testing = dt.today()
             print("\nStarting to score the dev dataset (all langs).")
             print(f"Number of sentences: {len(dev_translations)}")
             dev_scores  = get_scores(dev_translations, do_comet=True)
@@ -809,6 +825,9 @@ if __name__ == "__main__":
             print("Full test & dev dataset average BLEU:", np.mean(all_bleu))
             print("Full test & dev dataset average chrF2++:", np.mean(all_chrf))
             print("Full test & dev dataset average COMET:", np.mean(all_comet))
+            print("Timer (dev dataset testing):", dt.today() - timer_dev_testing)
+
+    print("Timer (full program execution):", dt.today() - timer_global)
 
     # Do not use args.training_steps or args.post_training_steps
     if training_steps > 0 or post_training_steps > 0:
